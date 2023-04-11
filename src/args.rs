@@ -19,34 +19,37 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod args;
-mod git_description;
-mod result;
-mod version;
+use clap::{Parser, Subcommand};
+use default_env::default_env;
+use git_version::git_version;
+use path_absolutize::Absolutize;
+use std::path::PathBuf;
 
-use clap::Parser;
+const DEVTOOL_VERSION: &str = default_env!("DEVTOOL_VERSION", git_version!());
 
-use crate::args::Args;
-use crate::git_description::GitDescription;
-use crate::result::Result;
-use crate::version::parse_version;
-use std::process::Command;
-use std::str::from_utf8;
+#[derive(Parser, Debug)]
+#[command(
+    name = env!("CARGO_PKG_NAME"),
+    about = format!("{} {}", env!("CARGO_PKG_DESCRIPTION"), DEVTOOL_VERSION),
+    after_help = format!("{}\nhttps://github.com/rcook/devtool", env!["CARGO_PKG_HOMEPAGE"]),
+    version = DEVTOOL_VERSION
+)]
+pub struct Args {
+    #[arg(global = true, help = "Path to Git repository", short = 'd', long = "dir", value_parser = parse_absolute_path)]
+    pub dir: Option<PathBuf>,
+    #[command(subcommand)]
+    pub command: Command,
+}
 
-fn main() -> Result<()> {
-    let args = Args::parse();
-    println!("args={:?}", args);
-    let output = Command::new("git")
-        .arg("-C")
-        .arg("/home/rcook/src/isopy")
-        .arg("describe")
-        .output()?;
-    let s = from_utf8(output.stdout.as_slice())?.trim();
-    let description = GitDescription::parse(s).expect("must succeed");
-    let mut version = parse_version(description.tag.as_str()).expect("must succeed");
-    println!("description={description:?}", description = description);
-    println!("version={version:?}", version = version);
-    version.increment();
-    println!("version={version:?}", version = version.to_string());
-    Ok(())
+#[derive(Debug, Subcommand)]
+pub enum Command {
+    #[command(name = "show", about = "Show Git tag and commit information")]
+    Show,
+}
+
+fn parse_absolute_path(s: &str) -> Result<PathBuf, String> {
+    PathBuf::from(s)
+        .absolutize()
+        .map_err(|_| String::from("invalid path"))
+        .map(|x| x.to_path_buf())
 }
