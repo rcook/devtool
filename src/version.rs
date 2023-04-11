@@ -1,3 +1,32 @@
+pub trait Version: std::fmt::Debug + std::fmt::Display {
+    fn increment(&mut self);
+}
+
+pub fn parse_version(s: &str) -> Option<Box<dyn Version>> {
+    let has_v = s.starts_with('v');
+    let s1 = if has_v { &s[1..] } else { s };
+    let parts = s1.split('.').collect::<Vec<_>>();
+
+    match parts.len() {
+        1 => Some(Box::new(VersionSingleton {
+            has_v,
+            major: parts[0].parse::<i32>().ok()?,
+        })),
+        2 => Some(Box::new(VersionPair {
+            has_v,
+            major: parts[0].parse::<i32>().ok()?,
+            minor: parts[1].parse::<i32>().ok()?,
+        })),
+        3 => Some(Box::new(VersionTriple {
+            has_v,
+            major: parts[0].parse::<i32>().ok()?,
+            minor: parts[1].parse::<i32>().ok()?,
+            build: parts[2].parse::<i32>().ok()?,
+        })),
+        _ => None,
+    }
+}
+
 #[derive(Debug)]
 struct VersionSingleton {
     has_v: bool,
@@ -67,34 +96,5 @@ impl std::fmt::Display for VersionTriple {
             minor = self.minor,
             build = self.build
         )
-    }
-}
-
-pub trait Version: std::fmt::Debug + std::fmt::Display {
-    fn increment(&mut self);
-}
-
-pub fn parse_version(s: &str) -> Option<Box<dyn Version>> {
-    let has_v = s.starts_with('v');
-    let s1 = if has_v { &s[1..] } else { s };
-    let parts = s1.split('.').collect::<Vec<_>>();
-
-    match parts.len() {
-        1 => Some(Box::new(VersionSingleton {
-            has_v,
-            major: parts[0].parse::<i32>().ok()?,
-        })),
-        2 => Some(Box::new(VersionPair {
-            has_v,
-            major: parts[0].parse::<i32>().ok()?,
-            minor: parts[1].parse::<i32>().ok()?,
-        })),
-        3 => Some(Box::new(VersionTriple {
-            has_v,
-            major: parts[0].parse::<i32>().ok()?,
-            minor: parts[1].parse::<i32>().ok()?,
-            build: parts[2].parse::<i32>().ok()?,
-        })),
-        _ => None,
     }
 }
