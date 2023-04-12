@@ -19,38 +19,4 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod args;
-mod commands;
-mod git;
-mod result;
-mod version;
-
-use clap::Parser;
-
-use crate::args::{Args, Command};
-use crate::commands::{generate_ignore, increment_tag, scratch, show_description};
-use crate::result::{Error, Result};
-use colored::Colorize;
-use std::env::current_dir;
-use std::process::exit;
-
-fn main() {
-    match run() {
-        Ok(()) => exit(0),
-        Err(Error::Reportable { message }) => println!("{}", message.red()),
-        Err(e) => println!("{}", format!("Unhandled error: {:#?}", e).red()),
-    }
-}
-
-fn run() -> Result<()> {
-    let cwd = current_dir()?;
-    let args = Args::parse();
-    let git_dir = args.git_dir.unwrap_or(cwd);
-    match args.command {
-        Command::GenerateIgnore => generate_ignore(git_dir)?,
-        Command::IncrementTag => increment_tag(git_dir)?,
-        Command::Scratch => scratch(),
-        Command::ShowDescription => show_description(git_dir)?,
-    }
-    Ok(())
-}
+pub fn scratch() {}
