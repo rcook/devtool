@@ -19,26 +19,27 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod args;
-mod commands;
-mod git;
-mod result;
-mod version;
-
-use clap::Parser;
-
-use crate::args::{Args, Command as _Command};
-use crate::commands::{increment_tag, show_description};
+use crate::git::Git;
 use crate::result::Result;
-use std::env::current_dir;
+use crate::version::parse_version;
+use std::path::{Path, PathBuf};
 
-fn main() -> Result<()> {
-    let cwd = current_dir()?;
-    let args = Args::parse();
-    let git_dir = args.git_dir.unwrap_or(cwd);
-    match args.command {
-        _Command::IncrementTag => increment_tag(git_dir)?,
-        _Command::ShowDescription => show_description(git_dir)?,
+pub fn show_description<P>(git_dir: P) -> Result<()>
+where
+    P: AsRef<Path> + Into<PathBuf>,
+{
+    println!("git_dir={git_dir}", git_dir = git_dir.as_ref().display());
+    let git = Git::new(git_dir.as_ref());
+    if let Some(description) = git.describe()? {
+        println!("description={description:#?}", description = description);
+        if let Some(version) = parse_version(&description.tag) {
+            println!("version={version:#?}", version = version);
+        } else {
+            println!("Could not parse tag as version")
+        }
+    } else {
+        println!("No valid description")
     }
+
     Ok(())
 }

@@ -19,26 +19,8 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod args;
-mod commands;
-mod git;
-mod result;
-mod version;
+mod increment_tag;
+mod show_description;
 
-use clap::Parser;
-
-use crate::args::{Args, Command as _Command};
-use crate::commands::{increment_tag, show_description};
-use crate::result::Result;
-use std::env::current_dir;
-
-fn main() -> Result<()> {
-    let cwd = current_dir()?;
-    let args = Args::parse();
-    let git_dir = args.git_dir.unwrap_or(cwd);
-    match args.command {
-        _Command::IncrementTag => increment_tag(git_dir)?,
-        _Command::ShowDescription => show_description(git_dir)?,
-    }
-    Ok(())
-}
+pub use self::increment_tag::increment_tag;
+pub use self::show_description::show_description;

@@ -43,8 +43,16 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    #[command(name = "show", about = "Show Git tag and commit information")]
-    Show,
+    #[command(
+        name = "show-description",
+        about = "Show Git description and commit information"
+    )]
+    ShowDescription,
+    #[command(
+        name = "increment-tag",
+        about = "Generate new Git tag by incrementing existing tag"
+    )]
+    IncrementTag,
 }
 
 fn parse_absolute_path(s: &str) -> Result<PathBuf, String> {

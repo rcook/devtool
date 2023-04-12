@@ -19,4 +19,38 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub enum Error {
+    #[allow(unused)]
+    Reportable {
+        message: String,
+    },
+    Other {
+        inner: Box<dyn std::error::Error>,
+    },
+}
+
+impl<E> From<E> for Error
+where
+    E: std::error::Error + 'static,
+{
+    fn from(e: E) -> Self {
+        other(Box::new(e))
+    }
+}
+
+pub fn other(inner: Box<dyn std::error::Error>) -> Error {
+    Error::Other { inner }
+}
+
+#[allow(unused)]
+pub fn reportable<M>(message: M) -> Error
+where
+    M: Into<String>,
+{
+    Error::Reportable {
+        message: message.into(),
+    }
+}

@@ -19,28 +19,31 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::git_description::GitDescription;
+use super::GitDescription;
 use crate::result::Result;
-use crate::version::parse_version;
-use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use std::str::from_utf8;
 
-pub fn show<P>(git_dir: P) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(git_dir.as_ref().to_str().expect("must be a valid string"))
-        .arg("describe")
-        .output()?;
-    let s = from_utf8(output.stdout.as_slice())?.trim();
-    let description = GitDescription::parse(s).expect("must succeed");
-    let mut version = parse_version(description.tag.as_str()).expect("must succeed");
-    println!("description={description:?}", description = description);
-    println!("version={version:?}", version = version);
-    version.increment();
-    println!("version={version:?}", version = version.to_string());
-    Ok(())
+pub struct Git {
+    dir: PathBuf,
+}
+
+impl Git {
+    pub fn new<P>(dir: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        Self { dir: dir.into() }
+    }
+
+    pub fn describe(&self) -> Result<Option<GitDescription>> {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("describe")
+            .output()?;
+        let s = from_utf8(output.stdout.as_slice())?.trim();
+        Ok(GitDescription::parse(s))
+    }
 }
