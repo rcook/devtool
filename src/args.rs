@@ -43,11 +43,15 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    #[command(name = "generate-ignore", about = "Generate .gitignore file")]
+    GenerateIgnore,
+
     #[command(
         name = "show-description",
         about = "Show Git description and commit information"
     )]
     ShowDescription,
+
     #[command(
         name = "increment-tag",
         about = "Generate new Git tag by incrementing existing tag"
