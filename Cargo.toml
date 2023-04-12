@@ -9,6 +9,7 @@ version = "0.0.0"
 
 [dependencies]
 clap = { version = "4.2.1", features = ["derive"] }
+colored = "2.0.0"
 default-env = "0.1.1"
 git-version = "0.3.5"
 path-absolutize = "3.0.14"

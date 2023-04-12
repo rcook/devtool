@@ -19,10 +19,12 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::git::Git;
 use crate::result::Result;
 use crate::version::parse_version;
+use crate::{git::Git, result::reportable};
 use std::path::{Path, PathBuf};
+
+const FIRST_TAG: &'static str = "v0.0.0";
 
 pub fn increment_tag<P>(git_dir: P) -> Result<()>
 where
@@ -30,18 +32,40 @@ where
 {
     println!("git_dir={git_dir}", git_dir = git_dir.as_ref().display());
     let git = Git::new(git_dir.as_ref());
-    if let Some(description) = git.describe()? {
-        println!("description={description:#?}", description = description);
-        if let Some(mut version) = parse_version(&description.tag) {
-            println!("version={version:#?}", version = version);
-            version.increment();
-            println!("incremented_version={version:#?}", version = version);
-        } else {
-            println!("Could not parse tag as version")
-        }
-    } else {
-        println!("No valid description")
+
+    let branch = git.rev_parse_abbrev_ref()?;
+    if branch != "main" && branch != "master" {
+        return Err(reportable("Must be on the \"main\" or \"master\" branch"));
     }
+
+    let tag = match git.describe()? {
+        Some(description) => {
+            if description.offset == None {
+                return Err(reportable(format!(
+                    "No commits since most recent tag \"{}\"",
+                    description.tag
+                )));
+            }
+
+            match parse_version(&description.tag) {
+                Some(mut version) => {
+                    println!("description={:#?}", description);
+                    version.increment();
+                    version.to_string()
+                }
+                None => {
+                    return Err(reportable(format!(
+                        "Cannot parse tag \"{}\" as version",
+                        description.tag
+                    )))
+                }
+            }
+        }
+        None => String::from(FIRST_TAG),
+    };
+
+    git.tag_a(&tag)?;
+    println!("Created tag {}", tag);
 
     Ok(())
 }

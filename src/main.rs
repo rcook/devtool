@@ -29,10 +29,20 @@ use clap::Parser;
 
 use crate::args::{Args, Command as _Command};
 use crate::commands::{increment_tag, show_description};
-use crate::result::Result;
+use crate::result::{Error, Result};
+use colored::Colorize;
 use std::env::current_dir;
+use std::process::exit;
 
-fn main() -> Result<()> {
+fn main() {
+    match run() {
+        Ok(()) => exit(0),
+        Err(Error::Reportable { message }) => println!("{}", message.red()),
+        Err(e) => println!("{}", format!("Unhandled error: {:#?}", e).red()),
+    }
+}
+
+fn run() -> Result<()> {
     let cwd = current_dir()?;
     let args = Args::parse();
     let git_dir = args.git_dir.unwrap_or(cwd);

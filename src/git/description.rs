@@ -19,13 +19,13 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Offset {
     pub commit: String,
     pub count: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct GitDescription {
     pub description: String,
     pub tag: String,
@@ -34,8 +34,11 @@ pub struct GitDescription {
 
 impl GitDescription {
     pub fn parse(s: &str) -> Option<Self> {
-        let parts = s.split('-').collect::<Vec<_>>();
+        if s.is_empty() {
+            return None;
+        }
 
+        let parts = s.split('-').collect::<Vec<_>>();
         match parts.len() {
             1 => Some(Self {
                 description: String::from(s),
@@ -57,12 +60,25 @@ impl GitDescription {
 
 #[cfg(test)]
 mod tests {
-    use super::GitDescription;
+    use super::{GitDescription, Offset};
     use rstest::rstest;
 
     #[rstest]
-    #[case("v0.0.21-1-gdf3eff3")]
-    fn test_basics(#[case] input: &str) {
-        GitDescription::parse(input);
+    #[case(None, "")]
+    #[case(Some(GitDescription {
+        description: String::from("v0.0.21"),
+        tag: String::from("v0.0.21"),
+        offset: None
+    }), "v0.0.21")]
+    #[case(Some(GitDescription {
+        description: String::from("v0.0.21-1-gdf3eff3"),
+        tag: String::from("v0.0.21"),
+        offset: Some(Offset {
+            commit: String::from("gdf3eff3"),
+            count: 1
+        })
+    }), "v0.0.21-1-gdf3eff3")]
+    fn test_basics(#[case] expected_result: Option<GitDescription>, #[case] input: &str) {
+        assert_eq!(expected_result, GitDescription::parse(input));
     }
 }
