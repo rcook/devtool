@@ -24,7 +24,7 @@ use crate::version::parse_version;
 use crate::{git::Git, result::reportable};
 use std::path::{Path, PathBuf};
 
-const FIRST_TAG: &'static str = "v0.0.0";
+const FIRST_TAG: &str = "v0.0.0";
 
 pub fn increment_tag<P>(git_dir: P) -> Result<()>
 where
@@ -40,7 +40,7 @@ where
 
     let tag = match git.describe()? {
         Some(description) => {
-            if description.offset == None {
+            if description.offset.is_none() {
                 return Err(reportable(format!(
                     "No commits since most recent tag \"{}\"",
                     description.tag
