@@ -67,5 +67,8 @@ where
     git.tag_a(&tag)?;
     println!("Created tag {}", tag);
 
+    git.push_follow_tags()?;
+    println!("Pushed commits and tags");
+
     Ok(())
 }

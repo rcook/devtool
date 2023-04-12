@@ -52,7 +52,7 @@ impl Git {
 
         if !output.status.success() {
             return Err(reportable(match exit_code {
-                Some(code) => format!("git describe failed with code {}", code),
+                Some(code) => format!("git describe failed with exit code {}", code),
                 None => String::from("git describe failed"),
             }));
         }
@@ -72,7 +72,7 @@ impl Git {
         if !output.status.success() {
             let exit_code = output.status.code();
             return Err(reportable(match exit_code {
-                Some(code) => format!("git rev-parse failed with code {}", code),
+                Some(code) => format!("git rev-parse failed with exit code {}", code),
                 None => String::from("git rev-parse failed"),
             }));
         }
@@ -94,8 +94,26 @@ impl Git {
         if !output.status.success() {
             let exit_code = output.status.code();
             return Err(reportable(match exit_code {
-                Some(code) => format!("git tag failed with code {}", code),
+                Some(code) => format!("git tag failed with exit code {}", code),
                 None => String::from("git tag failed"),
+            }));
+        }
+
+        Ok(())
+    }
+
+    pub fn push_follow_tags(&self) -> Result<()> {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("push")
+            .arg("--follow-tags")
+            .output()?;
+        if !output.status.success() {
+            let exit_code = output.status.code();
+            return Err(reportable(match exit_code {
+                Some(code) => format!("git push failed with exit code {}", code),
+                None => String::from("git push failed"),
             }));
         }
 
