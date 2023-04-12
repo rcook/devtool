@@ -119,4 +119,23 @@ impl Git {
 
         Ok(())
     }
+
+    pub fn status_ignored(&self) -> Result<String> {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("status")
+            .arg("--porcelain")
+            .arg("--ignored")
+            .output()?;
+        if !output.status.success() {
+            let exit_code = output.status.code();
+            return Err(reportable(match exit_code {
+                Some(code) => format!("git status failed with exit code {}", code),
+                None => String::from("git status failed"),
+            }));
+        }
+
+        Ok(String::from(from_utf8(output.stdout.as_slice())?))
+    }
 }

@@ -27,8 +27,8 @@ mod version;
 
 use clap::Parser;
 
-use crate::args::{Args, Command as _Command};
-use crate::commands::{increment_tag, show_description};
+use crate::args::{Args, Command};
+use crate::commands::{generate_ignore, increment_tag, show_description};
 use crate::result::{Error, Result};
 use colored::Colorize;
 use std::env::current_dir;
@@ -47,8 +47,9 @@ fn run() -> Result<()> {
     let args = Args::parse();
     let git_dir = args.git_dir.unwrap_or(cwd);
     match args.command {
-        _Command::IncrementTag => increment_tag(git_dir)?,
-        _Command::ShowDescription => show_description(git_dir)?,
+        Command::GenerateIgnore => generate_ignore(git_dir)?,
+        Command::IncrementTag => increment_tag(git_dir)?,
+        Command::ShowDescription => show_description(git_dir)?,
     }
     Ok(())
 }
