@@ -24,16 +24,17 @@ mod args;
 mod commands;
 mod git;
 mod result;
+mod util;
 mod version;
 
 use crate::app::App;
 use crate::args::{Args, Command};
 use crate::commands::{generate_ignore, increment_tag, scratch, show_description};
 use crate::result::{reportable, Error, Result};
+use crate::util::infer_git_dir;
 use clap::Parser;
 use colored::Colorize;
 use std::env::current_dir;
-use std::path::PathBuf;
 use std::process::exit;
 
 fn main() {
@@ -41,22 +42,6 @@ fn main() {
         Ok(()) => exit(0),
         Err(Error::Reportable { message }) => println!("{}", message.red()),
         Err(e) => println!("{}", format!("Unhandled error: {:#?}", e).red()),
-    }
-}
-
-fn infer_git_dir<P>(start_dir: P) -> Option<PathBuf>
-where
-    P: Into<PathBuf>,
-{
-    let mut dir = start_dir.into();
-    loop {
-        let dot_git_dir = dir.join(".git");
-        if dot_git_dir.is_dir() {
-            return Some(dir);
-        }
-        if !dir.pop() {
-            return None;
-        }
     }
 }
 
@@ -73,7 +58,7 @@ fn run() -> Result<()> {
     match args.command {
         Command::GenerateIgnore => generate_ignore(&app)?,
         Command::IncrementTag => increment_tag(&app)?,
-        Command::Scratch => scratch(&app),
+        Command::Scratch => scratch(&app)?,
         Command::ShowDescription => show_description(&app)?,
     }
     Ok(())

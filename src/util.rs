@@ -19,20 +19,32 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::app::App;
-use crate::result::{reportable, Result};
-use crate::util::read_toml_file;
+use crate::result::Result;
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
 
-pub fn scratch(app: &App) -> Result<()> {
-    let cargo_toml_path = app.git.dir.join("Cargo.toml");
-    if !cargo_toml_path.is_file() {
-        return Err(reportable(format!(
-            "No Cargo.toml found in {}",
-            app.git.dir.display()
-        )));
+pub fn infer_git_dir<P>(start_dir: P) -> Option<PathBuf>
+where
+    P: Into<PathBuf>,
+{
+    let mut dir = start_dir.into();
+    loop {
+        let dot_git_dir = dir.join(".git");
+        if dot_git_dir.is_dir() {
+            return Some(dir);
+        }
+        if !dir.pop() {
+            return None;
+        }
     }
+}
 
-    let value = read_toml_file::<toml::Value, _>(cargo_toml_path)?;
-    println!("value={:#?}", value);
-    Ok(())
+pub fn read_toml_file<T, P>(path: P) -> Result<T>
+where
+    T: serde::de::DeserializeOwned,
+    P: AsRef<Path>,
+{
+    let s = read_to_string(path)?;
+    let value = toml::from_str::<T>(&s)?;
+    Ok(value)
 }

@@ -26,7 +26,7 @@ use std::process::Command;
 use std::str::from_utf8;
 
 pub struct Git {
-    dir: PathBuf,
+    pub dir: PathBuf,
 }
 
 impl Git {
