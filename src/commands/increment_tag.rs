@@ -19,26 +19,19 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::result::Result;
+use crate::app::App;
+use crate::result::{reportable, Result};
 use crate::version::parse_version;
-use crate::{git::Git, result::reportable};
-use std::path::{Path, PathBuf};
 
 const FIRST_TAG: &str = "v0.0.0";
 
-pub fn increment_tag<P>(git_dir: P) -> Result<()>
-where
-    P: AsRef<Path> + Into<PathBuf>,
-{
-    println!("git_dir={git_dir}", git_dir = git_dir.as_ref().display());
-    let git = Git::new(git_dir.as_ref());
-
-    let branch = git.rev_parse_abbrev_ref()?;
+pub fn increment_tag(app: &App) -> Result<()> {
+    let branch = app.git.rev_parse_abbrev_ref()?;
     if branch != "main" && branch != "master" {
         return Err(reportable("Must be on the \"main\" or \"master\" branch"));
     }
 
-    let tag = match git.describe()? {
+    let tag = match app.git.describe()? {
         Some(description) => {
             if description.offset.is_none() {
                 return Err(reportable(format!(
@@ -64,10 +57,10 @@ where
         None => String::from(FIRST_TAG),
     };
 
-    git.tag_a(&tag)?;
+    app.git.tag_a(&tag)?;
     println!("Created tag {}", tag);
 
-    git.push_follow_tags()?;
+    app.git.push_follow_tags()?;
     println!("Pushed commits and tags");
 
     Ok(())

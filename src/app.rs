@@ -19,6 +19,23 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::app::App;
+use crate::git::Git;
+use std::path::PathBuf;
 
-pub fn scratch(_app: &App) {}
+pub struct App {
+    pub cwd: PathBuf,
+    pub git: Git,
+}
+
+impl App {
+    pub fn new<P, Q>(cwd: P, git_dir: Q) -> Self
+    where
+        P: Into<PathBuf>,
+        Q: Into<PathBuf>,
+    {
+        Self {
+            cwd: cwd.into(),
+            git: Git::new(git_dir),
+        }
+    }
+}

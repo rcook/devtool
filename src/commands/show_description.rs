@@ -19,18 +19,12 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::git::Git;
+use crate::app::App;
 use crate::result::Result;
 use crate::version::parse_version;
-use std::path::{Path, PathBuf};
 
-pub fn show_description<P>(git_dir: P) -> Result<()>
-where
-    P: AsRef<Path> + Into<PathBuf>,
-{
-    println!("git_dir={git_dir}", git_dir = git_dir.as_ref().display());
-    let git = Git::new(git_dir.as_ref());
-    if let Some(description) = git.describe()? {
+pub fn show_description(app: &App) -> Result<()> {
+    if let Some(description) = app.git.describe()? {
         println!("description={description:#?}", description = description);
         if let Some(version) = parse_version(&description.tag) {
             println!("version={version:#?}", version = version);

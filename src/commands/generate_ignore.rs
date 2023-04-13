@@ -19,19 +19,14 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::git::Git;
+use crate::app::App;
 use crate::result::Result;
-use std::path::{Path, PathBuf};
 
 const UNTRACKED_PREFIX: &str = "?? ";
 const IGNORED_PREFIX: &str = "!! ";
 
-pub fn generate_ignore<P>(git_dir: P) -> Result<()>
-where
-    P: AsRef<Path> + Into<PathBuf>,
-{
-    let git = Git::new(git_dir);
-    let s = git.status_ignored()?;
+pub fn generate_ignore(app: &App) -> Result<()> {
+    let s = app.git.status_ignored()?;
 
     let mut all_dir_paths = Vec::new();
     let mut all_file_paths = Vec::new();

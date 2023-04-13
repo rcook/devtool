@@ -19,19 +19,21 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+mod app;
 mod args;
 mod commands;
 mod git;
 mod result;
 mod version;
 
-use clap::Parser;
-
+use crate::app::App;
 use crate::args::{Args, Command};
 use crate::commands::{generate_ignore, increment_tag, scratch, show_description};
-use crate::result::{Error, Result};
+use crate::result::{reportable, Error, Result};
+use clap::Parser;
 use colored::Colorize;
 use std::env::current_dir;
+use std::path::PathBuf;
 use std::process::exit;
 
 fn main() {
@@ -42,15 +44,37 @@ fn main() {
     }
 }
 
+fn infer_git_dir<P>(start_dir: P) -> Option<PathBuf>
+where
+    P: Into<PathBuf>,
+{
+    let mut dir = start_dir.into();
+    loop {
+        let dot_git_dir = dir.join(".git");
+        if dot_git_dir.is_dir() {
+            return Some(dir);
+        }
+        if !dir.pop() {
+            return None;
+        }
+    }
+}
+
 fn run() -> Result<()> {
     let cwd = current_dir()?;
     let args = Args::parse();
-    let git_dir = args.git_dir.unwrap_or(cwd);
+    let git_dir = match args.git_dir.or_else(|| infer_git_dir(&cwd)) {
+        Some(d) => d,
+        None => return Err(reportable("Cannot infer Git project directory")),
+    };
+
+    let app = App::new(cwd, git_dir);
+
     match args.command {
-        Command::GenerateIgnore => generate_ignore(git_dir)?,
-        Command::IncrementTag => increment_tag(git_dir)?,
-        Command::Scratch => scratch(),
-        Command::ShowDescription => show_description(git_dir)?,
+        Command::GenerateIgnore => generate_ignore(&app)?,
+        Command::IncrementTag => increment_tag(&app)?,
+        Command::Scratch => scratch(&app),
+        Command::ShowDescription => show_description(&app)?,
     }
     Ok(())
 }
