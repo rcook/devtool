@@ -21,7 +21,7 @@
 //
 use crate::app::App;
 use crate::result::{reportable, Result};
-use crate::util::read_toml_file;
+use swiss_army_knife::read_toml_file;
 
 pub fn scratch(app: &App) -> Result<()> {
     let cargo_toml_path = app.git.dir.join("Cargo.toml");

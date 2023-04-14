@@ -19,9 +19,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::result::Result;
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub fn infer_git_dir<P>(start_dir: P) -> Option<PathBuf>
 where
@@ -37,14 +35,4 @@ where
             return None;
         }
     }
-}
-
-pub fn read_toml_file<T, P>(path: P) -> Result<T>
-where
-    T: serde::de::DeserializeOwned,
-    P: AsRef<Path>,
-{
-    let s = read_to_string(path)?;
-    let value = toml::from_str::<T>(&s)?;
-    Ok(value)
 }

@@ -15,4 +15,5 @@ git-version = "0.3.5"
 path-absolutize = "3.0.14"
 rstest = "0.17.0"
 serde = { version = "1.0.160", features = ["derive"] }
+swiss-army-knife = { git = "https://github.com/rcook/swiss-army-knife-rs", version = "0.0.0" }
 toml = "0.7.3"
