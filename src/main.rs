@@ -23,26 +23,27 @@ mod app;
 mod args;
 mod commands;
 mod git;
-mod result;
 mod util;
 mod version;
 
 use crate::app::App;
 use crate::args::{Args, Command};
 use crate::commands::{generate_ignore, increment_tag, scratch, show_description};
-use crate::result::{reportable, Error, Result};
 use crate::util::infer_git_dir;
+use anyhow::{bail, Result};
 use clap::Parser;
 use colored::Colorize;
 use std::env::current_dir;
 use std::process::exit;
 
 fn main() {
-    match run() {
-        Ok(()) => exit(0),
-        Err(Error::Reportable { message }) => println!("{}", message.red()),
-        Err(e) => println!("{}", format!("Unhandled error: {:#?}", e).red()),
-    }
+    exit(match run() {
+        Ok(()) => 0,
+        Err(e) => {
+            println!("{}", format!("{}", e).bright_red());
+            1
+        }
+    })
 }
 
 fn run() -> Result<()> {
@@ -50,7 +51,7 @@ fn run() -> Result<()> {
     let args = Args::parse();
     let git_dir = match args.git_dir.or_else(|| infer_git_dir(&cwd)) {
         Some(d) => d,
-        None => return Err(reportable("Cannot infer Git project directory")),
+        None => bail!("Cannot infer Git project directory"),
     };
 
     let app = App::new(cwd, git_dir);

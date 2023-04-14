@@ -20,7 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::result::Result;
+use anyhow::Result;
 
 const UNTRACKED_PREFIX: &str = "?? ";
 const IGNORED_PREFIX: &str = "!! ";

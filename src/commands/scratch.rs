@@ -20,16 +20,13 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::result::{reportable, Result};
+use anyhow::{bail, Result};
 use swiss_army_knife::read_toml_file;
 
 pub fn scratch(app: &App) -> Result<()> {
     let cargo_toml_path = app.git.dir.join("Cargo.toml");
     if !cargo_toml_path.is_file() {
-        return Err(reportable(format!(
-            "No Cargo.toml found in {}",
-            app.git.dir.display()
-        )));
+        bail!("No Cargo.toml found in {}", app.git.dir.display())
     }
 
     let value = read_toml_file::<toml::Value, _>(cargo_toml_path)?;

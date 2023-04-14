@@ -20,7 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use super::GitDescription;
-use crate::result::{reportable, Result};
+use anyhow::{bail, Result};
 use std::path::PathBuf;
 use std::process::Command;
 use std::str::from_utf8;
@@ -51,10 +51,10 @@ impl Git {
         }
 
         if !output.status.success() {
-            return Err(reportable(match exit_code {
-                Some(code) => format!("git describe failed with exit code {}", code),
-                None => String::from("git describe failed"),
-            }));
+            match exit_code {
+                Some(code) => bail!("git describe failed with exit code {}", code),
+                None => bail!("git describe failed"),
+            }
         }
 
         let stdout = from_utf8(output.stdout.as_slice())?.trim();
@@ -71,10 +71,10 @@ impl Git {
             .output()?;
         if !output.status.success() {
             let exit_code = output.status.code();
-            return Err(reportable(match exit_code {
-                Some(code) => format!("git rev-parse failed with exit code {}", code),
-                None => String::from("git rev-parse failed"),
-            }));
+            match exit_code {
+                Some(code) => bail!("git rev-parse failed with exit code {}", code),
+                None => bail!("git rev-parse failed"),
+            };
         }
 
         let s = from_utf8(output.stdout.as_slice())?.trim();
@@ -93,10 +93,10 @@ impl Git {
             .output()?;
         if !output.status.success() {
             let exit_code = output.status.code();
-            return Err(reportable(match exit_code {
-                Some(code) => format!("git tag failed with exit code {}", code),
-                None => String::from("git tag failed"),
-            }));
+            match exit_code {
+                Some(code) => bail!("git tag failed with exit code {}", code),
+                None => bail!("git tag failed"),
+            }
         }
 
         Ok(())
@@ -111,10 +111,10 @@ impl Git {
             .output()?;
         if !output.status.success() {
             let exit_code = output.status.code();
-            return Err(reportable(match exit_code {
-                Some(code) => format!("git push failed with exit code {}", code),
-                None => String::from("git push failed"),
-            }));
+            match exit_code {
+                Some(code) => bail!("git push failed with exit code {}", code),
+                None => bail!("git push failed"),
+            }
         }
 
         Ok(())
@@ -130,10 +130,10 @@ impl Git {
             .output()?;
         if !output.status.success() {
             let exit_code = output.status.code();
-            return Err(reportable(match exit_code {
-                Some(code) => format!("git status failed with exit code {}", code),
-                None => String::from("git status failed"),
-            }));
+            match exit_code {
+                Some(code) => bail!("git status failed with exit code {}", code),
+                None => bail!("git status failed"),
+            }
         }
 
         Ok(String::from(from_utf8(output.stdout.as_slice())?))

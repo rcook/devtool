@@ -20,24 +20,21 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::result::{reportable, Result};
 use crate::version::parse_version;
+use anyhow::{bail, Result};
 
 const FIRST_TAG: &str = "v0.0.0";
 
 pub fn increment_tag(app: &App) -> Result<()> {
     let branch = app.git.rev_parse_abbrev_ref()?;
     if branch != "main" && branch != "master" {
-        return Err(reportable("Must be on the \"main\" or \"master\" branch"));
+        bail!("Must be on the \"main\" or \"master\" branch")
     }
 
     let tag = match app.git.describe()? {
         Some(description) => {
             if description.offset.is_none() {
-                return Err(reportable(format!(
-                    "No commits since most recent tag \"{}\"",
-                    description.tag
-                )));
+                bail!("No commits since most recent tag \"{}\"", description.tag)
             }
 
             match parse_version(&description.tag) {
@@ -46,12 +43,7 @@ pub fn increment_tag(app: &App) -> Result<()> {
                     version.increment();
                     version.to_string()
                 }
-                None => {
-                    return Err(reportable(format!(
-                        "Cannot parse tag \"{}\" as version",
-                        description.tag
-                    )))
-                }
+                None => bail!("Cannot parse tag \"{}\" as version", description.tag),
             }
         }
         None => String::from(FIRST_TAG),

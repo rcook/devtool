@@ -8,6 +8,7 @@ name = "devtool"
 version = "0.0.0"
 
 [dependencies]
+anyhow = "1.0.70"
 clap = { version = "4.2.1", features = ["derive"] }
 colored = "2.0.0"
 default-env = "0.1.1"
