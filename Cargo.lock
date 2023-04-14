@@ -668,7 +668,7 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 [[package]]
 name = "swiss-army-knife"
 version = "0.0.0"
-source = "git+https://github.com/rcook/swiss-army-knife-rs#15be50c2b3fbcdf0820a6dfe6a626c870ff2d21e"
+source = "git+https://github.com/rcook/swiss-army-knife-rs?tag=v0.0.0#15be50c2b3fbcdf0820a6dfe6a626c870ff2d21e"
 dependencies = [
  "anyhow",
  "colored",
