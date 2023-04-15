@@ -27,7 +27,7 @@ const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 const PACKAGE_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const PACKAGE_HOME_PAGE: &str = env!("CARGO_PKG_HOMEPAGE");
-const PACKAGE_BUILD_VERSION: Option<&str> = option_env!("RUST_CI_BUILD_VERSION");
+const PACKAGE_BUILD_VERSION: Option<&str> = option_env!("DEVTOOL_BUILD_VERSION");
 
 #[derive(Parser, Debug)]
 #[command(
