@@ -22,19 +22,28 @@
 use crate::app::App;
 use crate::version::parse_version;
 use anyhow::{anyhow, bail, Result};
+use std::process::Command;
 use swiss_army_knife::{read_toml_file_edit, safe_write_file};
 use toml_edit::value;
 
 const INITIAL_VERSION_STR: &str = "v0.0.0";
 
 pub fn bump_version(app: &App) -> Result<()> {
+    if app.git.read_config("user.name")?.is_none() {
+        bail!("Git user name is not set")
+    }
+
+    if app.git.read_config("user.email")?.is_none() {
+        bail!("Git e-mail address is not set")
+    }
+
     let branch = app.git.rev_parse_abbrev_ref()?;
     if branch != "main" && branch != "master" {
         bail!("Must be on the \"main\" or \"master\" branch")
     }
 
     if !app.git.status(false)?.is_empty() {
-        bail!("Git working directory is not clean: please commit pending changes and try again")
+        bail!("Git working directory is not clean: please revert or commit pending changes and try again")
     }
 
     let new_version = match app.git.describe()? {
@@ -75,11 +84,22 @@ pub fn bump_version(app: &App) -> Result<()> {
     let result = doc.to_string();
     safe_write_file(&cargo_toml_path, result, true)?;
 
+    let cargo_lock_path = app.git.dir.join("Cargo.lock");
+    if app.git.is_tracked(&cargo_lock_path)? && !Command::new("cargo")
+            .arg("build")
+            .arg("--manifest-path")
+            .arg(&cargo_toml_path)
+            .status()?
+            .success() {
+        bail!("cargo build failed")
+    }
+
     app.git.add(&cargo_toml_path)?;
+    app.git.add(&cargo_lock_path)?;
 
     app.git
         .commit(format!("Bump version to {}", new_cargo_version))?;
-    println!("Bump Cargo.toml version to {}", new_cargo_version);
+    println!("Bump Cargo package version to {}", new_cargo_version);
 
     let tag = new_version.to_string();
     app.git.tag_a(&tag)?;

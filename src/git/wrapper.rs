@@ -70,8 +70,7 @@ impl Git {
             .arg("HEAD")
             .output()?;
         if !output.status.success() {
-            let exit_code = output.status.code();
-            match exit_code {
+            match output.status.code() {
                 Some(code) => bail!("git rev-parse failed with exit code {}", code),
                 None => bail!("git rev-parse failed"),
             };
@@ -92,8 +91,7 @@ impl Git {
             .arg(tag)
             .output()?;
         if !output.status.success() {
-            let exit_code = output.status.code();
-            match exit_code {
+            match output.status.code() {
                 Some(code) => bail!("git tag failed with exit code {}", code),
                 None => bail!("git tag failed"),
             }
@@ -110,8 +108,7 @@ impl Git {
             .arg("--follow-tags")
             .output()?;
         if !output.status.success() {
-            let exit_code = output.status.code();
-            match exit_code {
+            match output.status.code() {
                 Some(code) => bail!("git push failed with exit code {}", code),
                 None => bail!("git push failed"),
             }
@@ -133,8 +130,7 @@ impl Git {
 
         let output = command.output()?;
         if !output.status.success() {
-            let exit_code = output.status.code();
-            match exit_code {
+            match output.status.code() {
                 Some(code) => bail!("git status failed with exit code {}", code),
                 None => bail!("git status failed"),
             }
@@ -154,8 +150,7 @@ impl Git {
             .arg(path.as_ref())
             .output()?;
         if !output.status.success() {
-            let exit_code = output.status.code();
-            match exit_code {
+            match output.status.code() {
                 Some(code) => bail!("git commit failed with exit code {}", code),
                 None => bail!("git commit failed"),
             }
@@ -175,8 +170,14 @@ impl Git {
             .arg("--message")
             .arg(message.as_ref())
             .output()?;
+        let exit_code = output.status.code();
+        let stderr = from_utf8(output.stderr.as_slice())?.trim();
+
+        if exit_code == Some(128) && stderr.contains("tell me who you are") {
+            bail!("E-mail address and/or name is not set in Git repo")
+        }
+
         if !output.status.success() {
-            let exit_code = output.status.code();
             match exit_code {
                 Some(code) => bail!("git commit failed with exit code {}", code),
                 None => bail!("git commit failed"),
@@ -184,5 +185,54 @@ impl Git {
         }
 
         Ok(())
+    }
+
+    pub fn read_config<S>(&self, name: S) -> Result<Option<String>>
+    where
+        S: AsRef<str>,
+    {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("config")
+            .arg(name.as_ref())
+            .output()?;
+        let exit_code = output.status.code();
+        let stdout = from_utf8(output.stdout.as_slice())?.trim();
+
+        if exit_code == Some(1) && stdout.is_empty() {
+            return Ok(None);
+        }
+
+        if !output.status.success() {
+            match exit_code {
+                Some(code) => bail!("git config failed with exit code {}", code),
+                None => bail!("git config failed"),
+            }
+        }
+
+        Ok(Some(String::from(stdout)))
+    }
+
+    pub fn is_tracked<P>(&self, path: P) -> Result<bool>
+    where
+        P: AsRef<Path>,
+    {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("ls-files")
+            .arg(path.as_ref())
+            .output()?;
+
+        if !output.status.success() {
+            match output.status.code() {
+                Some(code) => bail!("git config failed with exit code {}", code),
+                None => bail!("git config failed"),
+            }
+        }
+
+        let stdout = from_utf8(output.stdout.as_slice())?.trim();
+        Ok(!stdout.is_empty())
     }
 }
