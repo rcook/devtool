@@ -1,0 +1,4 @@
+[build.env]
+passthrough = [
+    "DEVTOOL_BUILD_VERSION"
+]
