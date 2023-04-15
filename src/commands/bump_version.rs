@@ -112,10 +112,10 @@ pub fn bump_version(app: &App) -> Result<()> {
     println!("Bump Cargo package version to {}", new_cargo_version);
 
     let tag = new_version.to_string();
-    app.git.tag_a(&tag)?;
+    app.git.create_annotated_tag(&tag)?;
     println!("Created tag {}", tag);
 
-    app.git.push_follow_tags()?;
+    app.git.push_all()?;
     println!("Pushed commits and tags");
 
     Ok(())

@@ -33,7 +33,11 @@ pub struct GitDescription {
 }
 
 impl GitDescription {
-    pub fn parse(s: &str) -> Option<Self> {
+    pub fn parse<S>(s: S) -> Option<Self>
+    where
+        S: AsRef<str>,
+    {
+        let s = s.as_ref();
         if s.is_empty() {
             return None;
         }

@@ -60,14 +60,14 @@ impl CommandResult {
         Ok(())
     }
 
-    fn ok(&self) -> Result<()> {
+    fn ok(self) -> Result<Self> {
         if !self.succeeded {
             match self.exit_code {
                 Some(code) => bail!("{} failed with exit code {}", self.command, code),
                 None => bail!("{} failed", self.command),
             };
         }
-        Ok(())
+        Ok(self)
     }
 }
 
@@ -83,37 +83,22 @@ impl Git {
     }
 
     pub fn describe(&self) -> Result<Option<GitDescription>> {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("describe")
-            .output()?;
-        self.trace("describe", &output)?;
+        let result = self.run_git_command("describe", |_| {})?;
 
-        let exit_code = output.status.code();
-        let stderr = from_utf8(output.stderr.as_slice())?.trim();
-
-        if exit_code == Some(128) && stderr.contains("cannot describe anything") {
+        if result.exit_code == Some(128) && result.stderr.contains("cannot describe anything") {
             return Ok(None);
         }
 
-        if !output.status.success() {
-            match exit_code {
-                Some(code) => bail!("git describe failed with exit code {}", code),
-                None => bail!("git describe failed"),
-            }
-        }
-
-        let stdout = from_utf8(output.stdout.as_slice())?.trim();
-        Ok(GitDescription::parse(stdout))
+        Ok(GitDescription::parse(result.ok()?.stdout))
     }
 
     pub fn get_current_branch(&self) -> Result<String> {
-        let result = self.run_git_command("rev-parse", |c| {
-            c.arg("--abbrev-ref");
-            c.arg("HEAD");
-        })?;
-        result.ok()?;
+        let result = self
+            .run_git_command("rev-parse", |c| {
+                c.arg("--abbrev-ref");
+                c.arg("HEAD");
+            })?
+            .ok()?;
         Ok(result.stdout)
     }
 
@@ -127,94 +112,48 @@ impl Git {
             return Ok(None);
         }
 
-        result.ok()?;
-        Ok(Some(result.stdout))
+        Ok(Some(result.ok()?.stdout))
     }
 
-    pub fn tag_a(&self, tag: &str) -> Result<()> {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("tag")
-            .arg("--annotate")
-            .arg(tag)
-            .arg("--message")
-            .arg(tag)
-            .output()?;
-        self.trace("tag", &output)?;
-
-        if !output.status.success() {
-            match output.status.code() {
-                Some(code) => bail!("git tag failed with exit code {}", code),
-                None => bail!("git tag failed"),
-            }
-        }
-
+    pub fn create_annotated_tag(&self, tag: &str) -> Result<()> {
+        self.run_git_command("tag", |c| {
+            c.arg("--annotate");
+            c.arg(tag);
+            c.arg("--message");
+            c.arg(tag);
+        })?
+        .ok()?;
         Ok(())
     }
 
-    pub fn push_follow_tags(&self) -> Result<()> {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("push")
-            .arg("--follow-tags")
-            .output()?;
-        self.trace("push", &output)?;
-
-        if !output.status.success() {
-            match output.status.code() {
-                Some(code) => bail!("git push failed with exit code {}", code),
-                None => bail!("git push failed"),
-            }
-        }
-
+    pub fn push_all(&self) -> Result<()> {
+        self.run_git_command("push", |c| {
+            c.arg("--follow-tags");
+        })?
+        .ok()?;
         Ok(())
     }
 
     pub fn status(&self, ignored: bool) -> Result<String> {
-        let mut command = Command::new("git");
-        command
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("status")
-            .arg("--porcelain");
-        if ignored {
-            _ = command.arg("--ignored");
-        }
-
-        let output = command.output()?;
-        self.trace("status", &output)?;
-
-        if !output.status.success() {
-            match output.status.code() {
-                Some(code) => bail!("git status failed with exit code {}", code),
-                None => bail!("git status failed"),
-            }
-        }
-
-        Ok(String::from(from_utf8(output.stdout.as_slice())?))
+        let result = self
+            .run_git_command("status", |c| {
+                c.arg("--porcelain");
+                if ignored {
+                    c.arg("--ignored");
+                }
+            })?
+            .ok()?;
+        Ok(result.stdout)
     }
 
     pub fn add<P>(&self, path: P) -> Result<()>
     where
         P: AsRef<Path>,
     {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("add")
-            .arg(path.as_ref())
-            .output()?;
-        self.trace("add", &output)?;
-
-        if !output.status.success() {
-            match output.status.code() {
-                Some(code) => bail!("git commit failed with exit code {}", code),
-                None => bail!("git commit failed"),
-            }
-        }
-
+        self.run_git_command("add", |c| {
+            c.arg(path.as_ref());
+        })?
+        .ok()?;
         Ok(())
     }
 
@@ -222,29 +161,16 @@ impl Git {
     where
         S: AsRef<str>,
     {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("commit")
-            .arg("--message")
-            .arg(message.as_ref())
-            .output()?;
-        self.trace("commit", &output)?;
+        let result = self.run_git_command("commit", |c| {
+            c.arg("--message");
+            c.arg(message.as_ref());
+        })?;
 
-        let exit_code = output.status.code();
-        let stderr = from_utf8(output.stderr.as_slice())?.trim();
-
-        if exit_code == Some(128) && stderr.contains("tell me who you are") {
+        if result.exit_code == Some(128) && result.stderr.contains("tell me who you are") {
             bail!("E-mail address and/or name is not set in Git repo")
         }
 
-        if !output.status.success() {
-            match exit_code {
-                Some(code) => bail!("git commit failed with exit code {}", code),
-                None => bail!("git commit failed"),
-            }
-        }
-
+        result.ok()?;
         Ok(())
     }
 
@@ -252,52 +178,27 @@ impl Git {
     where
         S: AsRef<str>,
     {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("config")
-            .arg(name.as_ref())
-            .output()?;
-        self.trace("config", &output)?;
+        let result = self.run_git_command("config", |c| {
+            c.arg(name.as_ref());
+        })?;
 
-        let exit_code = output.status.code();
-        let stdout = from_utf8(output.stdout.as_slice())?.trim();
-
-        if exit_code == Some(1) && stdout.is_empty() {
+        if result.exit_code == Some(1) && result.stdout.is_empty() {
             return Ok(None);
         }
 
-        if !output.status.success() {
-            match exit_code {
-                Some(code) => bail!("git config failed with exit code {}", code),
-                None => bail!("git config failed"),
-            }
-        }
-
-        Ok(Some(String::from(stdout)))
+        Ok(Some(result.ok()?.stdout))
     }
 
     pub fn is_tracked<P>(&self, path: P) -> Result<bool>
     where
         P: AsRef<Path>,
     {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("ls-files")
-            .arg(path.as_ref())
-            .output()?;
-        self.trace("ls-files", &output)?;
-
-        if !output.status.success() {
-            match output.status.code() {
-                Some(code) => bail!("git config failed with exit code {}", code),
-                None => bail!("git config failed"),
-            }
-        }
-
-        let stdout = from_utf8(output.stdout.as_slice())?.trim();
-        Ok(!stdout.is_empty())
+        let result = self
+            .run_git_command("ls-files", |c| {
+                c.arg(path.as_ref());
+            })?
+            .ok()?;
+        Ok(!result.stdout.is_empty())
     }
 
     fn run_git_command<F>(&self, command: &str, build: F) -> Result<CommandResult>
@@ -314,20 +215,5 @@ impl Git {
             result.dump()?
         }
         Ok(result)
-    }
-
-    fn trace(&self, context: &str, output: &Output) -> Result<()> {
-        if self.debug {
-            let stdout = from_utf8(output.stdout.as_slice())?.trim();
-            let stderr = from_utf8(output.stderr.as_slice())?.trim();
-            println!(
-                "TRACE: [{}] exit_code={:?} stdout=[{}] stderr=[{}]",
-                context,
-                output.status.code(),
-                stdout,
-                stderr
-            );
-        }
-        Ok(())
     }
 }
