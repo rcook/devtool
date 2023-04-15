@@ -11,8 +11,6 @@ version = "0.0.5"
 anyhow = "1.0.70"
 clap = { version = "4.2.1", features = ["derive"] }
 colored = "2.0.0"
-default-env = "0.1.1"
-git-version = "0.3.5"
 path-absolutize = "3.0.14"
 rstest = "0.17.0"
 serde = { version = "1.0.160", features = ["derive"] }
