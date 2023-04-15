@@ -23,18 +23,17 @@ mod app;
 mod args;
 mod commands;
 mod git;
-mod util;
 mod version;
 
 use crate::app::App;
 use crate::args::{Args, Command};
 use crate::commands::{generate_ignore, increment_tag, scratch, show_description};
-use crate::util::infer_git_dir;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use colored::Colorize;
 use std::env::current_dir;
 use std::process::exit;
+use swiss_army_knife::find_sentinel_dir;
 
 fn main() {
     exit(match run() {
@@ -49,12 +48,17 @@ fn main() {
 fn run() -> Result<()> {
     let cwd = current_dir()?;
     let args = Args::parse();
-    let git_dir = match args.git_dir.or_else(|| infer_git_dir(&cwd)) {
-        Some(d) => d,
-        None => bail!("Cannot infer Git project directory"),
-    };
+    let git_dir = args
+        .git_dir
+        .or_else(|| {
+            find_sentinel_dir(".git", &cwd, None).map(|mut dir| {
+                dir.pop();
+                dir
+            })
+        })
+        .ok_or(anyhow!("Cannot infer Git project directory"))?;
 
-    let app = App::new(cwd, git_dir);
+    let app = App::new(&cwd, git_dir);
 
     match args.command {
         Command::GenerateIgnore => generate_ignore(&app)?,
