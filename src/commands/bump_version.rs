@@ -37,13 +37,21 @@ pub fn bump_version(app: &App) -> Result<()> {
         bail!("Git e-mail address is not set")
     }
 
-    let branch = app.git.rev_parse_abbrev_ref()?;
+    let branch = app.git.get_current_branch()?;
     if branch != "main" && branch != "master" {
         bail!("Must be on the \"main\" or \"master\" branch")
     }
 
     if !app.git.status(false)?.is_empty() {
         bail!("Git working directory is not clean: please revert or commit pending changes and try again")
+    }
+
+    if app.git.get_upstream(&branch)?.is_none() {
+        bail!(
+            "Branch {} has no upstream set: set with git push -u origin {} or similar",
+            branch,
+            branch
+        );
     }
 
     let new_version = match app.git.describe()? {

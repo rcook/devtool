@@ -35,6 +35,8 @@ const DEVTOOL_VERSION: &str = default_env!("DEVTOOL_VERSION", git_version!());
     version = DEVTOOL_VERSION
 )]
 pub struct Args {
+    #[arg(global = true, help = "Trace/debug mode", short = 't', long = "debug")]
+    pub debug: bool,
     #[arg(global = true, help = "Path to Git repository", short = 'd', long = "dir", value_parser = parse_absolute_path)]
     pub git_dir: Option<PathBuf>,
     #[command(subcommand)]

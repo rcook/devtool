@@ -22,19 +22,64 @@
 use super::GitDescription;
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 use std::str::from_utf8;
 
 pub struct Git {
     pub dir: PathBuf,
+    debug: bool,
+}
+
+struct CommandResult {
+    command: String,
+    succeeded: bool,
+    exit_code: Option<i32>,
+    stderr: String,
+    stdout: String,
+}
+
+impl CommandResult {
+    fn from_output<S>(command: S, output: &Output) -> Result<Self>
+    where
+        S: Into<String>,
+    {
+        Ok(Self {
+            command: command.into(),
+            succeeded: output.status.success(),
+            exit_code: output.status.code(),
+            stderr: String::from(from_utf8(output.stderr.as_slice())?.trim()),
+            stdout: String::from(from_utf8(output.stdout.as_slice())?.trim()),
+        })
+    }
+
+    fn dump(&self) -> Result<()> {
+        println!(
+            "TRACE: [{}] exit_code={:?} stdout=[{}] stderr=[{}]",
+            self.command, self.exit_code, self.stdout, self.stderr
+        );
+        Ok(())
+    }
+
+    fn ok(&self) -> Result<()> {
+        if !self.succeeded {
+            match self.exit_code {
+                Some(code) => bail!("{} failed with exit code {}", self.command, code),
+                None => bail!("{} failed", self.command),
+            };
+        }
+        Ok(())
+    }
 }
 
 impl Git {
-    pub fn new<P>(dir: P) -> Self
+    pub fn new<P>(dir: P, debug: bool) -> Self
     where
         P: Into<PathBuf>,
     {
-        Self { dir: dir.into() }
+        Self {
+            dir: dir.into(),
+            debug,
+        }
     }
 
     pub fn describe(&self) -> Result<Option<GitDescription>> {
@@ -43,6 +88,8 @@ impl Git {
             .arg(&self.dir)
             .arg("describe")
             .output()?;
+        self.trace("describe", &output)?;
+
         let exit_code = output.status.code();
         let stderr = from_utf8(output.stderr.as_slice())?.trim();
 
@@ -61,23 +108,27 @@ impl Git {
         Ok(GitDescription::parse(stdout))
     }
 
-    pub fn rev_parse_abbrev_ref(&self) -> Result<String> {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(&self.dir)
-            .arg("rev-parse")
-            .arg("--abbrev-ref")
-            .arg("HEAD")
-            .output()?;
-        if !output.status.success() {
-            match output.status.code() {
-                Some(code) => bail!("git rev-parse failed with exit code {}", code),
-                None => bail!("git rev-parse failed"),
-            };
+    pub fn get_current_branch(&self) -> Result<String> {
+        let result = self.run_git_command("rev-parse", |c| {
+            c.arg("--abbrev-ref");
+            c.arg("HEAD");
+        })?;
+        result.ok()?;
+        Ok(result.stdout)
+    }
+
+    pub fn get_upstream(&self, branch: &str) -> Result<Option<String>> {
+        let result = self.run_git_command("rev-parse", |c| {
+            c.arg("--abbrev-ref");
+            c.arg(format!("{}@{{upstream}}", branch));
+        })?;
+
+        if result.exit_code == Some(128) && result.stderr.contains("no upstream") {
+            return Ok(None);
         }
 
-        let s = from_utf8(output.stdout.as_slice())?.trim();
-        Ok(String::from(s))
+        result.ok()?;
+        Ok(Some(result.stdout))
     }
 
     pub fn tag_a(&self, tag: &str) -> Result<()> {
@@ -90,6 +141,8 @@ impl Git {
             .arg("--message")
             .arg(tag)
             .output()?;
+        self.trace("tag", &output)?;
+
         if !output.status.success() {
             match output.status.code() {
                 Some(code) => bail!("git tag failed with exit code {}", code),
@@ -107,6 +160,8 @@ impl Git {
             .arg("push")
             .arg("--follow-tags")
             .output()?;
+        self.trace("push", &output)?;
+
         if !output.status.success() {
             match output.status.code() {
                 Some(code) => bail!("git push failed with exit code {}", code),
@@ -129,6 +184,8 @@ impl Git {
         }
 
         let output = command.output()?;
+        self.trace("status", &output)?;
+
         if !output.status.success() {
             match output.status.code() {
                 Some(code) => bail!("git status failed with exit code {}", code),
@@ -149,6 +206,8 @@ impl Git {
             .arg("add")
             .arg(path.as_ref())
             .output()?;
+        self.trace("add", &output)?;
+
         if !output.status.success() {
             match output.status.code() {
                 Some(code) => bail!("git commit failed with exit code {}", code),
@@ -170,6 +229,8 @@ impl Git {
             .arg("--message")
             .arg(message.as_ref())
             .output()?;
+        self.trace("commit", &output)?;
+
         let exit_code = output.status.code();
         let stderr = from_utf8(output.stderr.as_slice())?.trim();
 
@@ -197,6 +258,8 @@ impl Git {
             .arg("config")
             .arg(name.as_ref())
             .output()?;
+        self.trace("config", &output)?;
+
         let exit_code = output.status.code();
         let stdout = from_utf8(output.stdout.as_slice())?.trim();
 
@@ -224,6 +287,7 @@ impl Git {
             .arg("ls-files")
             .arg(path.as_ref())
             .output()?;
+        self.trace("ls-files", &output)?;
 
         if !output.status.success() {
             match output.status.code() {
@@ -234,5 +298,36 @@ impl Git {
 
         let stdout = from_utf8(output.stdout.as_slice())?.trim();
         Ok(!stdout.is_empty())
+    }
+
+    fn run_git_command<F>(&self, command: &str, build: F) -> Result<CommandResult>
+    where
+        F: FnOnce(&mut Command),
+    {
+        let mut c = Command::new("git");
+        c.arg("-C");
+        c.arg(&self.dir);
+        c.arg(command);
+        build(&mut c);
+        let result = CommandResult::from_output(command, &c.output()?)?;
+        if self.debug {
+            result.dump()?
+        }
+        Ok(result)
+    }
+
+    fn trace(&self, context: &str, output: &Output) -> Result<()> {
+        if self.debug {
+            let stdout = from_utf8(output.stdout.as_slice())?.trim();
+            let stderr = from_utf8(output.stderr.as_slice())?.trim();
+            println!(
+                "TRACE: [{}] exit_code={:?} stdout=[{}] stderr=[{}]",
+                context,
+                output.status.code(),
+                stdout,
+                stderr
+            );
+        }
+        Ok(())
     }
 }

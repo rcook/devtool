@@ -58,7 +58,7 @@ fn run() -> Result<()> {
         })
         .ok_or(anyhow!("Cannot infer Git project directory"))?;
 
-    let app = App::new(&cwd, git_dir);
+    let app = App::new(args.debug, &cwd, git_dir);
 
     match args.command {
         Command::BumpVersion => bump_version(&app)?,

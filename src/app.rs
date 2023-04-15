@@ -23,19 +23,21 @@ use crate::git::Git;
 use std::path::PathBuf;
 
 pub struct App {
+    pub debug: bool,
     pub cwd: PathBuf,
     pub git: Git,
 }
 
 impl App {
-    pub fn new<P, Q>(cwd: P, git_dir: Q) -> Self
+    pub fn new<P, Q>(debug: bool, cwd: P, git_dir: Q) -> Self
     where
         P: Into<PathBuf>,
         Q: Into<PathBuf>,
     {
         Self {
+            debug,
             cwd: cwd.into(),
-            git: Git::new(git_dir),
+            git: Git::new(git_dir, debug),
         }
     }
 }
