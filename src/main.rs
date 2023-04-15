@@ -27,7 +27,7 @@ mod version;
 
 use crate::app::App;
 use crate::args::{Args, Command};
-use crate::commands::{generate_ignore, increment_tag, scratch, show_description};
+use crate::commands::{bump_version, generate_ignore, scratch, show_description};
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use colored::Colorize;
@@ -61,8 +61,8 @@ fn run() -> Result<()> {
     let app = App::new(&cwd, git_dir);
 
     match args.command {
+        Command::BumpVersion => bump_version(&app)?,
         Command::GenerateIgnore => generate_ignore(&app)?,
-        Command::IncrementTag => increment_tag(&app)?,
         Command::Scratch => scratch(&app)?,
         Command::ShowDescription => show_description(&app)?,
     }

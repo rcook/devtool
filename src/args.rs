@@ -43,6 +43,12 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    #[command(
+        name = "bump-version",
+        about = "Update Cargo.toml version, generate new Git tag and push"
+    )]
+    BumpVersion,
+
     #[command(name = "generate-ignore", about = "Generate .gitignore file")]
     GenerateIgnore,
 
@@ -54,12 +60,6 @@ pub enum Command {
         about = "Show Git description and commit information"
     )]
     ShowDescription,
-
-    #[command(
-        name = "increment-tag",
-        about = "Generate new Git tag by incrementing existing tag"
-    )]
-    IncrementTag,
 }
 
 fn parse_absolute_path(s: &str) -> Result<PathBuf, String> {

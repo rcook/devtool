@@ -20,16 +20,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use anyhow::{bail, Result};
-use swiss_army_knife::read_toml_file;
+use anyhow::Result;
 
-pub fn scratch(app: &App) -> Result<()> {
-    let cargo_toml_path = app.git.dir.join("Cargo.toml");
-    if !cargo_toml_path.is_file() {
-        bail!("No Cargo.toml found in {}", app.git.dir.display())
-    }
-
-    let value = read_toml_file::<toml::Value, _>(cargo_toml_path)?;
-    println!("value={:#?}", value);
+pub fn scratch(_app: &App) -> Result<()> {
+    println!("scratch");
     Ok(())
 }

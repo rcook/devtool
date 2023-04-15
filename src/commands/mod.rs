@@ -19,12 +19,12 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+mod bump_version;
 mod generate_ignore;
-mod increment_tag;
 mod scratch;
 mod show_description;
 
+pub use self::bump_version::bump_version;
 pub use self::generate_ignore::generate_ignore;
-pub use self::increment_tag::increment_tag;
 pub use self::scratch::scratch;
 pub use self::show_description::show_description;

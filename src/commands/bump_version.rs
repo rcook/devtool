@@ -21,17 +21,23 @@
 //
 use crate::app::App;
 use crate::version::parse_version;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
+use swiss_army_knife::{read_toml_file_edit, safe_write_file};
+use toml_edit::value;
 
-const FIRST_TAG: &str = "v0.0.0";
+const INITIAL_VERSION_STR: &str = "v0.0.0";
 
-pub fn increment_tag(app: &App) -> Result<()> {
+pub fn bump_version(app: &App) -> Result<()> {
     let branch = app.git.rev_parse_abbrev_ref()?;
     if branch != "main" && branch != "master" {
         bail!("Must be on the \"main\" or \"master\" branch")
     }
 
-    let tag = match app.git.describe()? {
+    if !app.git.status(false)?.is_empty() {
+        bail!("Git working directory is not clean: please commit pending changes and try again")
+    }
+
+    let new_version = match app.git.describe()? {
         Some(description) => {
             if description.offset.is_none() {
                 bail!("No commits since most recent tag \"{}\"", description.tag)
@@ -41,14 +47,41 @@ pub fn increment_tag(app: &App) -> Result<()> {
                 Some(mut version) => {
                     println!("description={:#?}", description);
                     version.increment();
-                    version.to_string()
+                    version
                 }
                 None => bail!("Cannot parse tag \"{}\" as version", description.tag),
             }
         }
-        None => String::from(FIRST_TAG),
+        None => parse_version(INITIAL_VERSION_STR).expect("must be valid"),
     };
 
+    let cargo_toml_path = app.git.dir.join("Cargo.toml");
+    if !cargo_toml_path.is_file() {
+        bail!("No Cargo.toml found in {}", app.git.dir.display())
+    }
+
+    let mut doc = read_toml_file_edit(&cargo_toml_path)?;
+    let package = doc
+        .as_table_mut()
+        .get_mut("package")
+        .ok_or(anyhow!("Expected \"package\" table"))?
+        .as_table_mut()
+        .ok_or(anyhow!("\"package\" must be a table"))?;
+
+    let mut new_cargo_version = new_version.dupe();
+    new_cargo_version.set_prefix(false);
+    _ = package.insert("version", value(format!("{}", new_cargo_version)));
+
+    let result = doc.to_string();
+    safe_write_file(&cargo_toml_path, result, true)?;
+
+    app.git.add(&cargo_toml_path)?;
+
+    app.git
+        .commit(format!("Bump version to {}", new_cargo_version))?;
+    println!("Bump Cargo.toml version to {}", new_cargo_version);
+
+    let tag = new_version.to_string();
     app.git.tag_a(&tag)?;
     println!("Created tag {}", tag);
 

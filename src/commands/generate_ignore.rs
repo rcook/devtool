@@ -26,7 +26,7 @@ const UNTRACKED_PREFIX: &str = "?? ";
 const IGNORED_PREFIX: &str = "!! ";
 
 pub fn generate_ignore(app: &App) -> Result<()> {
-    let s = app.git.status_ignored()?;
+    let s = app.git.status(false)?;
 
     let mut all_dir_paths = Vec::new();
     let mut all_file_paths = Vec::new();

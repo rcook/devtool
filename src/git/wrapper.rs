@@ -21,7 +21,7 @@
 //
 use super::GitDescription;
 use anyhow::{bail, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::from_utf8;
 
@@ -120,14 +120,18 @@ impl Git {
         Ok(())
     }
 
-    pub fn status_ignored(&self) -> Result<String> {
-        let output = Command::new("git")
+    pub fn status(&self, ignored: bool) -> Result<String> {
+        let mut command = Command::new("git");
+        command
             .arg("-C")
             .arg(&self.dir)
             .arg("status")
-            .arg("--porcelain")
-            .arg("--ignored")
-            .output()?;
+            .arg("--porcelain");
+        if ignored {
+            _ = command.arg("--ignored");
+        }
+
+        let output = command.output()?;
         if !output.status.success() {
             let exit_code = output.status.code();
             match exit_code {
@@ -137,5 +141,48 @@ impl Git {
         }
 
         Ok(String::from(from_utf8(output.stdout.as_slice())?))
+    }
+
+    pub fn add<P>(&self, path: P) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("add")
+            .arg(path.as_ref())
+            .output()?;
+        if !output.status.success() {
+            let exit_code = output.status.code();
+            match exit_code {
+                Some(code) => bail!("git commit failed with exit code {}", code),
+                None => bail!("git commit failed"),
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn commit<S>(&self, message: S) -> Result<()>
+    where
+        S: AsRef<str>,
+    {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(&self.dir)
+            .arg("commit")
+            .arg("--message")
+            .arg(message.as_ref())
+            .output()?;
+        if !output.status.success() {
+            let exit_code = output.status.code();
+            match exit_code {
+                Some(code) => bail!("git commit failed with exit code {}", code),
+                None => bail!("git commit failed"),
+            }
+        }
+
+        Ok(())
     }
 }
