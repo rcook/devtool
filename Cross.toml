@@ -1,4 +1,4 @@
 [build.env]
 passthrough = [
-    "DEVTOOL_BUILD_VERSION"
+    "RUST_TOOL_ACTION_BUILD_VERSION"
 ]
