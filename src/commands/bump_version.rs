@@ -22,11 +22,29 @@
 use crate::app::App;
 use crate::version::parse_version;
 use anyhow::{anyhow, bail, Result};
+use std::path::PathBuf;
 use std::process::Command;
 use swiss_army_knife::{read_toml_file_edit, safe_write_file};
 use toml_edit::value;
 
 const INITIAL_VERSION_STR: &str = "v0.0.0";
+
+#[derive(Debug)]
+enum ProjectInfo {
+    Cargo { cargo_toml_path: PathBuf },
+    Other,
+}
+
+impl ProjectInfo {
+    fn infer(app: &App) -> Self {
+        let cargo_toml_path = app.git.dir.join("Cargo.toml");
+        if cargo_toml_path.is_file() {
+            Self::Cargo { cargo_toml_path }
+        } else {
+            Self::Other
+        }
+    }
+}
 
 pub fn bump_version(app: &App) -> Result<()> {
     if app.git.read_config("user.name")?.is_none() {
@@ -72,44 +90,44 @@ pub fn bump_version(app: &App) -> Result<()> {
         None => parse_version(INITIAL_VERSION_STR).expect("must be valid"),
     };
 
-    let cargo_toml_path = app.git.dir.join("Cargo.toml");
-    if !cargo_toml_path.is_file() {
-        bail!("No Cargo.toml found in {}", app.git.dir.display())
+    let project_info = ProjectInfo::infer(&app);
+    println!("project_info={:#?}", project_info);
+
+    if let ProjectInfo::Cargo { cargo_toml_path } = project_info {
+        let mut doc = read_toml_file_edit(&cargo_toml_path)?;
+        let package = doc
+            .as_table_mut()
+            .get_mut("package")
+            .ok_or(anyhow!("Expected \"package\" table"))?
+            .as_table_mut()
+            .ok_or(anyhow!("\"package\" must be a table"))?;
+
+        let mut new_cargo_version = new_version.dupe();
+        new_cargo_version.set_prefix(false);
+        _ = package.insert("version", value(format!("{}", new_cargo_version)));
+
+        let result = doc.to_string();
+        safe_write_file(&cargo_toml_path, result, true)?;
+
+        let cargo_lock_path = app.git.dir.join("Cargo.lock");
+        if app.git.is_tracked(&cargo_lock_path)?
+            && !Command::new("cargo")
+                .arg("build")
+                .arg("--manifest-path")
+                .arg(&cargo_toml_path)
+                .status()?
+                .success()
+        {
+            bail!("cargo build failed")
+        }
+
+        app.git.add(&cargo_toml_path)?;
+        app.git.add(&cargo_lock_path)?;
+
+        app.git
+            .commit(format!("Bump version to {}", new_cargo_version))?;
+        println!("Bump Cargo package version to {}", new_cargo_version);
     }
-
-    let mut doc = read_toml_file_edit(&cargo_toml_path)?;
-    let package = doc
-        .as_table_mut()
-        .get_mut("package")
-        .ok_or(anyhow!("Expected \"package\" table"))?
-        .as_table_mut()
-        .ok_or(anyhow!("\"package\" must be a table"))?;
-
-    let mut new_cargo_version = new_version.dupe();
-    new_cargo_version.set_prefix(false);
-    _ = package.insert("version", value(format!("{}", new_cargo_version)));
-
-    let result = doc.to_string();
-    safe_write_file(&cargo_toml_path, result, true)?;
-
-    let cargo_lock_path = app.git.dir.join("Cargo.lock");
-    if app.git.is_tracked(&cargo_lock_path)?
-        && !Command::new("cargo")
-            .arg("build")
-            .arg("--manifest-path")
-            .arg(&cargo_toml_path)
-            .status()?
-            .success()
-    {
-        bail!("cargo build failed")
-    }
-
-    app.git.add(&cargo_toml_path)?;
-    app.git.add(&cargo_lock_path)?;
-
-    app.git
-        .commit(format!("Bump version to {}", new_cargo_version))?;
-    println!("Bump Cargo package version to {}", new_cargo_version);
 
     let tag = new_version.to_string();
     app.git.create_annotated_tag(&tag)?;
