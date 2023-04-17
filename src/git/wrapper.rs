@@ -200,10 +200,11 @@ impl Git {
         c.arg(command);
         build(&mut c);
 
+        let command_str = format!("{:?}", c);
         let result = CommandResult::from_output(command, &c.output()?)?;
         trace!(
             "command={}, exit_code={:?}, stdout=[{}], stderr=[{}]",
-            result.command,
+            command_str,
             result.exit_code,
             result.stdout,
             result.stderr
