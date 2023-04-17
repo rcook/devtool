@@ -110,19 +110,21 @@ pub fn bump_version(app: &App) -> Result<()> {
         safe_write_file(&cargo_toml_path, result, true)?;
 
         let cargo_lock_path = app.git.dir.join("Cargo.lock");
-        if app.git.is_tracked(&cargo_lock_path)?
-            && !Command::new("cargo")
+        if app.git.is_tracked(&cargo_lock_path)? {
+            if !Command::new("cargo")
                 .arg("build")
                 .arg("--manifest-path")
                 .arg(&cargo_toml_path)
                 .status()?
                 .success()
-        {
-            bail!("cargo build failed")
+            {
+                bail!("cargo build failed")
+            }
+
+            app.git.add(&cargo_lock_path)?;
         }
 
         app.git.add(&cargo_toml_path)?;
-        app.git.add(&cargo_lock_path)?;
 
         app.git
             .commit(format!("Bump version to {}", new_cargo_version))?;
