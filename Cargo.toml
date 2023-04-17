@@ -12,10 +12,10 @@ anyhow = "1.0.70"
 chrono = "0.4.24"
 clap = { version = "4.2.1", features = ["derive"] }
 colored = "2.0.0"
+joatmon = "0.0.11"
 log = { version = "0.4.17", features = ["std"] }
 path-absolutize = "3.0.14"
 rstest = "0.17.0"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
-swiss-army-knife = { version = "0.0.4", git = "https://github.com/rcook/swiss-army-knife-rs", tag = "v0.0.4" }
 toml_edit = "0.19.8"

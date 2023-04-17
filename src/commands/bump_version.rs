@@ -22,9 +22,9 @@
 use crate::app::App;
 use crate::version::parse_version;
 use anyhow::{anyhow, bail, Result};
+use joatmon::{read_toml_file_edit, safe_write_file};
 use std::path::PathBuf;
 use std::process::Command;
-use swiss_army_knife::{read_toml_file_edit, safe_write_file};
 use toml_edit::value;
 
 const INITIAL_VERSION_STR: &str = "v0.0.0";

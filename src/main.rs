@@ -32,10 +32,10 @@ use crate::commands::{bump_version, generate_ignore, scratch, show_description};
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use colored::Colorize;
+use joatmon::find_sentinel_dir;
 use logging::init_logging;
 use std::env::current_dir;
 use std::process::exit;
-use swiss_army_knife::find_sentinel_dir;
 
 fn main() {
     exit(match run() {
