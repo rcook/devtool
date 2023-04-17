@@ -20,6 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use clap::{Parser, Subcommand};
+use log::LevelFilter;
 use path_absolutize::Absolutize;
 use std::path::PathBuf;
 
@@ -37,8 +38,16 @@ const PACKAGE_BUILD_VERSION: Option<&str> = option_env!("RUST_TOOL_ACTION_BUILD_
     after_help = format!("{}{}", PACKAGE_HOME_PAGE, PACKAGE_BUILD_VERSION.map(|x| format!("\n\n{}", x)).unwrap_or(String::from("")))
 )]
 pub struct Args {
-    #[arg(global = true, help = "Trace/debug mode", short = 't', long = "debug")]
-    pub debug: bool,
+    #[arg(global = true, help = "Detailed logging", long = "detailed")]
+    pub detailed: bool,
+    #[arg(
+        global = true,
+        help = "Logging level filter",
+        short = 'l',
+        long = "level",
+        default_value_t = LevelFilter::Info
+    )]
+    pub log_level: LevelFilter,
     #[arg(global = true, help = "Path to Git repository", short = 'd', long = "dir", value_parser = parse_absolute_path)]
     pub git_dir: Option<PathBuf>,
     #[command(subcommand)]

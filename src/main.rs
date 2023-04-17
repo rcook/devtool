@@ -23,6 +23,7 @@ mod app;
 mod args;
 mod commands;
 mod git;
+mod logging;
 mod version;
 
 use crate::app::App;
@@ -31,6 +32,7 @@ use crate::commands::{bump_version, generate_ignore, scratch, show_description};
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use colored::Colorize;
+use logging::init_logging;
 use std::env::current_dir;
 use std::process::exit;
 use swiss_army_knife::find_sentinel_dir;
@@ -48,6 +50,9 @@ fn main() {
 fn run() -> Result<()> {
     let cwd = current_dir()?;
     let args = Args::parse();
+
+    init_logging(args.detailed, args.log_level)?;
+
     let git_dir = args
         .git_dir
         .or_else(|| {
@@ -58,7 +63,7 @@ fn run() -> Result<()> {
         })
         .ok_or(anyhow!("Cannot infer Git project directory"))?;
 
-    let app = App::new(args.debug, &cwd, git_dir);
+    let app = App::new(&cwd, git_dir);
 
     match args.command {
         Command::BumpVersion => bump_version(&app)?,

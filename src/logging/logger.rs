@@ -19,23 +19,43 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::git::Git;
-use std::path::PathBuf;
+use super::entry::{BriefEntry, DetailedEntry};
+use log::{Log, Metadata, Record};
 
-pub struct App {
-    pub cwd: PathBuf,
-    pub git: Git,
+pub struct BriefLogger;
+
+impl Log for BriefLogger {
+    fn enabled(&self, _metadata: &Metadata) -> bool {
+        true
+    }
+
+    fn flush(&self) {}
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            match serde_json::to_string(&BriefEntry::new(record)) {
+                Ok(s) => println!("{}", s),
+                Err(_) => println!("{{\"msg\": \"serialization-failed\"}}"),
+            }
+        }
+    }
 }
 
-impl App {
-    pub fn new<P, Q>(cwd: P, git_dir: Q) -> Self
-    where
-        P: Into<PathBuf>,
-        Q: Into<PathBuf>,
-    {
-        Self {
-            cwd: cwd.into(),
-            git: Git::new(git_dir),
+pub struct DetailedLogger;
+
+impl Log for DetailedLogger {
+    fn enabled(&self, _metadata: &Metadata) -> bool {
+        true
+    }
+
+    fn flush(&self) {}
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            match serde_json::to_string(&DetailedEntry::new(record)) {
+                Ok(s) => println!("{}", s),
+                Err(_) => println!("{{\"msg\": \"serialization-failed\"}}"),
+            }
         }
     }
 }

@@ -19,23 +19,19 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use crate::git::Git;
-use std::path::PathBuf;
+use super::logger::{BriefLogger, DetailedLogger};
+use anyhow::Result;
+use log::LevelFilter;
 
-pub struct App {
-    pub cwd: PathBuf,
-    pub git: Git,
-}
+static BRIEF_LOGGER: BriefLogger = BriefLogger;
+static DETAILED_LOGGER: DetailedLogger = DetailedLogger;
 
-impl App {
-    pub fn new<P, Q>(cwd: P, git_dir: Q) -> Self
-    where
-        P: Into<PathBuf>,
-        Q: Into<PathBuf>,
-    {
-        Self {
-            cwd: cwd.into(),
-            git: Git::new(git_dir),
-        }
-    }
+pub fn init_logging(detailed: bool, level_filter: LevelFilter) -> Result<()> {
+    log::set_logger(if detailed {
+        &DETAILED_LOGGER
+    } else {
+        &BRIEF_LOGGER
+    })?;
+    log::set_max_level(level_filter);
+    Ok(())
 }

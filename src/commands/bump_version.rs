@@ -90,7 +90,7 @@ pub fn bump_version(app: &App) -> Result<()> {
         None => parse_version(INITIAL_VERSION_STR).expect("must be valid"),
     };
 
-    let project_info = ProjectInfo::infer(&app);
+    let project_info = ProjectInfo::infer(app);
     println!("project_info={:#?}", project_info);
 
     if let ProjectInfo::Cargo { cargo_toml_path } = project_info {

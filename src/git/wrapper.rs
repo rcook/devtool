@@ -21,13 +21,13 @@
 //
 use super::GitDescription;
 use anyhow::{bail, Result};
+use log::trace;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::str::from_utf8;
 
 pub struct Git {
     pub dir: PathBuf,
-    debug: bool,
 }
 
 struct CommandResult {
@@ -52,14 +52,6 @@ impl CommandResult {
         })
     }
 
-    fn dump(&self) -> Result<()> {
-        println!(
-            "TRACE: [{}] exit_code={:?} stdout=[{}] stderr=[{}]",
-            self.command, self.exit_code, self.stdout, self.stderr
-        );
-        Ok(())
-    }
-
     fn ok(self) -> Result<Self> {
         if !self.succeeded {
             match self.exit_code {
@@ -72,18 +64,15 @@ impl CommandResult {
 }
 
 impl Git {
-    pub fn new<P>(dir: P, debug: bool) -> Self
+    pub fn new<P>(dir: P) -> Self
     where
         P: Into<PathBuf>,
     {
-        Self {
-            dir: dir.into(),
-            debug,
-        }
+        Self { dir: dir.into() }
     }
 
     pub fn describe(&self) -> Result<Option<GitDescription>> {
-        let result = self.run_git_command("describe", |_| {})?;
+        let result = self.run("describe", |_| {})?;
 
         if result.exit_code == Some(128) && result.stderr.contains("cannot describe anything") {
             return Ok(None);
@@ -94,7 +83,7 @@ impl Git {
 
     pub fn get_current_branch(&self) -> Result<String> {
         let result = self
-            .run_git_command("rev-parse", |c| {
+            .run("rev-parse", |c| {
                 c.arg("--abbrev-ref");
                 c.arg("HEAD");
             })?
@@ -103,7 +92,7 @@ impl Git {
     }
 
     pub fn get_upstream(&self, branch: &str) -> Result<Option<String>> {
-        let result = self.run_git_command("rev-parse", |c| {
+        let result = self.run("rev-parse", |c| {
             c.arg("--abbrev-ref");
             c.arg(format!("{}@{{upstream}}", branch));
         })?;
@@ -116,7 +105,7 @@ impl Git {
     }
 
     pub fn create_annotated_tag(&self, tag: &str) -> Result<()> {
-        self.run_git_command("tag", |c| {
+        self.run("tag", |c| {
             c.arg("--annotate");
             c.arg(tag);
             c.arg("--message");
@@ -127,7 +116,7 @@ impl Git {
     }
 
     pub fn push_all(&self) -> Result<()> {
-        self.run_git_command("push", |c| {
+        self.run("push", |c| {
             c.arg("--follow-tags");
         })?
         .ok()?;
@@ -136,7 +125,7 @@ impl Git {
 
     pub fn status(&self, ignored: bool) -> Result<String> {
         let result = self
-            .run_git_command("status", |c| {
+            .run("status", |c| {
                 c.arg("--porcelain");
                 if ignored {
                     c.arg("--ignored");
@@ -150,7 +139,7 @@ impl Git {
     where
         P: AsRef<Path>,
     {
-        self.run_git_command("add", |c| {
+        self.run("add", |c| {
             c.arg(path.as_ref());
         })?
         .ok()?;
@@ -161,7 +150,7 @@ impl Git {
     where
         S: AsRef<str>,
     {
-        let result = self.run_git_command("commit", |c| {
+        let result = self.run("commit", |c| {
             c.arg("--message");
             c.arg(message.as_ref());
         })?;
@@ -178,7 +167,7 @@ impl Git {
     where
         S: AsRef<str>,
     {
-        let result = self.run_git_command("config", |c| {
+        let result = self.run("config", |c| {
             c.arg(name.as_ref());
         })?;
 
@@ -194,14 +183,14 @@ impl Git {
         P: AsRef<Path>,
     {
         let result = self
-            .run_git_command("ls-files", |c| {
+            .run("ls-files", |c| {
                 c.arg(path.as_ref());
             })?
             .ok()?;
         Ok(!result.stdout.is_empty())
     }
 
-    fn run_git_command<F>(&self, command: &str, build: F) -> Result<CommandResult>
+    fn run<F>(&self, command: &str, build: F) -> Result<CommandResult>
     where
         F: FnOnce(&mut Command),
     {
@@ -210,10 +199,16 @@ impl Git {
         c.arg(&self.dir);
         c.arg(command);
         build(&mut c);
+
         let result = CommandResult::from_output(command, &c.output()?)?;
-        if self.debug {
-            result.dump()?
-        }
+        trace!(
+            "command={}, exit_code={:?}, stdout=[{}], stderr=[{}]",
+            result.command,
+            result.exit_code,
+            result.stdout,
+            result.stderr
+        );
+
         Ok(result)
     }
 }
