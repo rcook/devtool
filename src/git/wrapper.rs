@@ -83,9 +83,8 @@ impl Git {
 
     pub fn get_current_branch(&self) -> Result<String> {
         let result = self
-            .run("rev-parse", |c| {
-                c.arg("--abbrev-ref");
-                c.arg("HEAD");
+            .run("branch", |c| {
+                c.arg("--show-current");
             })?
             .ok()?;
         Ok(result.stdout)
