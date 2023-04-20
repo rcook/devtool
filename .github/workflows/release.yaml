@@ -39,10 +39,8 @@ jobs:
             archive_type: .tar.gz
             build_os: ubuntu-latest
     runs-on: ${{ matrix.build_os }}
-    name: Build, test and release Rust tool
     steps:
-      - name: Release Rust Tool
-        id: release_rust_tool
+      - name: Build, test and release Rust tool
         uses: rcook/rust-tool-action@v0.0.26
         with:
           tool_name: ${{ env.tool_name }}
