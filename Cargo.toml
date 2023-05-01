@@ -10,7 +10,7 @@ version = "0.0.17"
 [dependencies]
 anyhow = "1.0.70"
 chrono = "0.4.24"
-clap = { version = "4.2.4", features = ["derive"] }
+clap = { version = "4.2.5", features = ["derive"] }
 colored = "2.0.0"
 joatmon = "0.0.18"
 log = { version = "0.4.17", features = ["std"] }
