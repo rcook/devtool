@@ -472,11 +472,12 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 
 [[package]]
 name = "joatmon"
-version = "0.0.18"
+version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9e0fc509d809c59bc3d08b5899fd6db2515f296014a4e4fb8c0dbf0f135d9e6"
+checksum = "0ef8d16884a94cf6f14d9a74b36618a54620476465446fc32bc610f79d301d8a"
 dependencies = [
  "anyhow",
+ "rstest",
  "serde",
  "serde_json",
  "serde_yaml",
