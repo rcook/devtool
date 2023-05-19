@@ -35,6 +35,7 @@ use colored::Colorize;
 use joatmon::find_sentinel_dir;
 use logging::init_logging;
 use std::env::current_dir;
+use std::path::Path;
 use std::process::exit;
 
 fn main() {
@@ -56,7 +57,7 @@ fn run() -> Result<()> {
     let git_dir = args
         .git_dir
         .or_else(|| {
-            find_sentinel_dir(".git", &cwd, None).map(|mut dir| {
+            find_sentinel_dir(Path::new(".git"), &cwd, None).map(|mut dir| {
                 dir.pop();
                 dir
             })

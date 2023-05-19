@@ -10,12 +10,12 @@ version = "0.0.17"
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.24"
-clap = { version = "4.2.5", features = ["derive"] }
+clap = { version = "4.2.7", features = ["derive"] }
 colored = "2.0.0"
-joatmon = "0.0.20"
+joatmon = "0.0.27"
 log = { version = "0.4.17", features = ["std"] }
-path-absolutize = "3.0.14"
+path-absolutize = "3.1.0"
 rstest = "0.17.0"
-serde = { version = "1.0.160", features = ["derive"] }
+serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
-toml_edit = "0.19.8"
+toml_edit = "0.19.9"
