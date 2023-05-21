@@ -34,7 +34,7 @@ impl Log for BriefLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             match serde_json::to_string(&BriefEntry::new(record)) {
-                Ok(s) => println!("{}", s),
+                Ok(s) => println!("{s}"),
                 Err(_) => println!("{{\"msg\": \"serialization-failed\"}}"),
             }
         }
@@ -53,7 +53,7 @@ impl Log for DetailedLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             match serde_json::to_string(&DetailedEntry::new(record)) {
-                Ok(s) => println!("{}", s),
+                Ok(s) => println!("{s}"),
                 Err(_) => println!("{{\"msg\": \"serialization-failed\"}}"),
             }
         }

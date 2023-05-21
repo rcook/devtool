@@ -80,7 +80,7 @@ pub fn bump_version(app: &App) -> Result<()> {
 
             match parse_version(&description.tag) {
                 Some(mut version) => {
-                    println!("description={:#?}", description);
+                    println!("description={description:#?}");
                     version.increment();
                     version
                 }
@@ -91,20 +91,20 @@ pub fn bump_version(app: &App) -> Result<()> {
     };
 
     let project_info = ProjectInfo::infer(app);
-    println!("project_info={:#?}", project_info);
+    println!("project_info={project_info:#?}");
 
     if let ProjectInfo::Cargo { cargo_toml_path } = project_info {
         let mut doc = read_toml_file_edit(&cargo_toml_path)?;
         let package = doc
             .as_table_mut()
             .get_mut("package")
-            .ok_or(anyhow!("Expected \"package\" table"))?
+            .ok_or_else(|| anyhow!("Expected \"package\" table"))?
             .as_table_mut()
-            .ok_or(anyhow!("\"package\" must be a table"))?;
+            .ok_or_else(|| anyhow!("\"package\" must be a table"))?;
 
         let mut new_cargo_version = new_version.dupe();
         new_cargo_version.set_prefix(false);
-        _ = package.insert("version", value(format!("{}", new_cargo_version)));
+        _ = package.insert("version", value(format!("{new_cargo_version}")));
 
         let result = doc.to_string();
         safe_write_file(&cargo_toml_path, result, true)?;
@@ -127,13 +127,13 @@ pub fn bump_version(app: &App) -> Result<()> {
         app.git.add(&cargo_toml_path)?;
 
         app.git
-            .commit(format!("Bump version to {}", new_cargo_version))?;
-        println!("Bump Cargo package version to {}", new_cargo_version);
+            .commit(format!("Bump version to {new_cargo_version}"))?;
+        println!("Bump Cargo package version to {new_cargo_version}");
     }
 
     let tag = new_version.to_string();
     app.git.create_annotated_tag(&tag)?;
-    println!("Created tag {}", tag);
+    println!("Created tag {tag}");
 
     app.git.push_all()?;
     println!("Pushed commits and tags");

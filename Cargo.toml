@@ -1,10 +1,13 @@
 [package]
 authors = ["Richard Cook"]
+categories = ["development-tools"]
 description = "Richard's Development Tool"
 edition = "2021"
 homepage = "https://github.com/rcook/devtool"
+keywords = ["general"]
 license = "MIT"
 name = "devtool"
+repository = "https://github.com/rcook/devtool"
 version = "0.0.17"
 
 [dependencies]

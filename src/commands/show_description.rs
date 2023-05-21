@@ -25,14 +25,14 @@ use anyhow::Result;
 
 pub fn show_description(app: &App) -> Result<()> {
     if let Some(description) = app.git.describe()? {
-        println!("description={description:#?}", description = description);
+        println!("description={description:#?}");
         if let Some(version) = parse_version(&description.tag) {
-            println!("version={version:#?}", version = version);
+            println!("version={version:#?}");
         } else {
-            println!("Could not parse tag as version")
+            println!("Could not parse tag as version");
         }
     } else {
-        println!("No valid description")
+        println!("No valid description");
     }
 
     Ok(())

@@ -82,6 +82,7 @@ where
     serializer.serialize_str(&value.to_rfc3339())
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn serialize_level<S>(value: &Level, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,

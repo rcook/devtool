@@ -20,9 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use anyhow::Result;
 
-pub fn scratch(_app: &App) -> Result<()> {
+pub fn scratch(_app: &App) {
     println!("scratch");
-    Ok(())
 }

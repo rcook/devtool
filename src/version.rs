@@ -58,7 +58,7 @@ struct VersionSingleton {
 
 impl Version for VersionSingleton {
     fn set_prefix(&mut self, value: bool) {
-        self.has_prefix = value
+        self.has_prefix = value;
     }
 
     fn increment(&mut self) {
@@ -91,7 +91,7 @@ struct VersionPair {
 
 impl Version for VersionPair {
     fn set_prefix(&mut self, value: bool) {
-        self.has_prefix = value
+        self.has_prefix = value;
     }
 
     fn increment(&mut self) {
@@ -126,7 +126,7 @@ struct VersionTriple {
 
 impl Version for VersionTriple {
     fn set_prefix(&mut self, value: bool) {
-        self.has_prefix = value
+        self.has_prefix = value;
     }
 
     fn increment(&mut self) {

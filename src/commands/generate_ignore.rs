@@ -32,40 +32,40 @@ pub fn generate_ignore(app: &App) -> Result<()> {
     let mut all_file_paths = Vec::new();
     for line in s.lines().filter_map(is_path_to_ignore) {
         if line.ends_with('/') {
-            all_dir_paths.push(line)
+            all_dir_paths.push(line);
         } else {
-            all_file_paths.push(line)
+            all_file_paths.push(line);
         }
     }
 
-    all_dir_paths.sort();
-    all_file_paths.sort();
+    all_dir_paths.sort_unstable();
+    all_file_paths.sort_unstable();
 
     let mut dir_paths = Vec::new();
     for p in &all_dir_paths {
         if !is_covered_by_dir(&all_dir_paths, p) {
-            dir_paths.push(p)
+            dir_paths.push(p);
         }
     }
 
     let mut file_paths = Vec::new();
     for p in &all_file_paths {
         if !is_covered_by_dir(&all_dir_paths, p) {
-            file_paths.push(p)
+            file_paths.push(p);
         }
     }
 
     if !dir_paths.is_empty() {
         println!("# Directories");
         for p in &dir_paths {
-            println!("/{}", p)
+            println!("/{p}");
         }
     }
 
     if !file_paths.is_empty() {
         println!("# Files");
         for p in &file_paths {
-            println!("/{}", p)
+            println!("/{p}");
         }
     }
 

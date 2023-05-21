@@ -93,7 +93,7 @@ impl Git {
     pub fn get_upstream(&self, branch: &str) -> Result<Option<String>> {
         let result = self.run("rev-parse", |c| {
             c.arg("--abbrev-ref");
-            c.arg(format!("{}@{{upstream}}", branch));
+            c.arg(format!("{branch}@{{upstream}}"));
         })?;
 
         if result.exit_code == Some(128) && result.stderr.contains("no upstream") {
@@ -199,7 +199,7 @@ impl Git {
         c.arg(command);
         build(&mut c);
 
-        let command_str = format!("{:?}", c);
+        let command_str = format!("{c:?}");
         let result = CommandResult::from_output(command, &c.output()?)?;
         trace!(
             "command={}, exit_code={:?}, stdout=[{}], stderr=[{}]",
