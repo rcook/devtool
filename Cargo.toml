@@ -8,7 +8,7 @@ keywords = ["general"]
 license = "MIT"
 name = "devtool"
 repository = "https://github.com/rcook/devtool"
-version = "0.0.17"
+version = "0.0.18"
 
 [dependencies]
 anyhow = "1.0.71"
