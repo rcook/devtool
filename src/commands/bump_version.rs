@@ -46,7 +46,7 @@ impl ProjectInfo {
     }
 }
 
-pub fn bump_version(app: &App) -> Result<()> {
+pub fn bump_version(app: &App, push_all: bool) -> Result<()> {
     if app.git.read_config("user.name")?.is_none() {
         bail!("Git user name is not set")
     }
@@ -135,8 +135,12 @@ pub fn bump_version(app: &App) -> Result<()> {
     app.git.create_annotated_tag(&tag)?;
     println!("Created tag {tag}");
 
-    app.git.push_all()?;
-    println!("Pushed commits and tags");
+    if push_all {
+        app.git.push_all()?;
+        println!("Pushed commits and tags");
+    } else {
+        println!("Skipping push of commits and tags");
+    }
 
     Ok(())
 }

@@ -19,7 +19,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use log::LevelFilter;
 use path_absolutize::Absolutize;
 use std::path::PathBuf;
@@ -40,6 +40,7 @@ const PACKAGE_BUILD_VERSION: Option<&str> = option_env!("RUST_TOOL_ACTION_BUILD_
 pub struct Args {
     #[arg(global = true, help = "Detailed logging", long = "detailed")]
     pub detailed: bool,
+
     #[arg(
         global = true,
         help = "Logging level filter",
@@ -48,8 +49,10 @@ pub struct Args {
         default_value_t = LevelFilter::Info
     )]
     pub log_level: LevelFilter,
+
     #[arg(global = true, help = "Path to Git repository", short = 'd', long = "dir", value_parser = parse_absolute_path)]
     pub git_dir: Option<PathBuf>,
+
     #[command(subcommand)]
     pub command: Command,
 }
@@ -60,7 +63,17 @@ pub enum Command {
         name = "bump-version",
         about = "Update Cargo.toml version, generate new Git tag and push"
     )]
-    BumpVersion,
+    BumpVersion {
+        #[arg(help = "Do not push commits and tags",long = "no-push-all", action = ArgAction::SetFalse)]
+        push_all: bool,
+
+        #[arg(
+            help = "Push commits and tags",
+            long = "push-all",
+            overrides_with = "push_all"
+        )]
+        _no_push_all: bool,
+    },
 
     #[command(name = "generate-ignore", about = "Generate .gitignore file")]
     GenerateIgnore,

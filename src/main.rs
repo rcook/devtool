@@ -80,7 +80,10 @@ fn run() -> Result<()> {
     let app = App::new(&cwd, git_dir);
 
     match args.command {
-        Command::BumpVersion => bump_version(&app)?,
+        Command::BumpVersion {
+            push_all,
+            _no_push_all,
+        } => bump_version(&app, push_all)?,
         Command::GenerateIgnore => generate_ignore(&app)?,
         Command::Scratch => scratch(&app),
         Command::ShowDescription => show_description(&app)?,
