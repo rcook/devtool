@@ -201,6 +201,7 @@ dependencies = [
  "clap",
  "colored",
  "devtool-git",
+ "devtool-version",
  "joatmon",
  "log",
  "path-absolutize",
@@ -218,6 +219,14 @@ dependencies = [
  "anyhow",
  "log",
  "rstest",
+]
+
+[[package]]
+name = "devtool-version"
+version = "0.0.20"
+dependencies = [
+ "anyhow",
+ "thiserror",
 ]
 
 [[package]]

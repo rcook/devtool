@@ -32,59 +32,6 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::option_if_let_else)]
-mod app;
-mod args;
-mod commands;
-mod logging;
-mod product_info;
+mod version;
 
-use crate::app::App;
-use crate::args::{Args, Command};
-use crate::commands::{bump_version, generate_ignore, scratch, show_description};
-use anyhow::{anyhow, Result};
-use clap::Parser;
-use colored::Colorize;
-use joatmon::find_sentinel_dir;
-use logging::init_logging;
-use std::env::current_dir;
-use std::path::Path;
-use std::process::exit;
-fn main() {
-    exit(match run() {
-        Ok(()) => 0,
-        Err(e) => {
-            println!("{}", format!("{e}").bright_red());
-            1
-        }
-    })
-}
-
-fn run() -> Result<()> {
-    let cwd = current_dir()?;
-    let args = Args::parse();
-
-    init_logging(args.detailed, args.log_level)?;
-
-    let git_dir = args
-        .git_dir
-        .or_else(|| {
-            find_sentinel_dir(Path::new(".git"), &cwd, None).map(|mut dir| {
-                dir.pop();
-                dir
-            })
-        })
-        .ok_or_else(|| anyhow!("Cannot infer Git project directory"))?;
-
-    let app = App::new(&cwd, git_dir);
-
-    match args.command {
-        Command::BumpVersion {
-            push_all,
-            _no_push_all,
-        } => bump_version(&app, push_all)?,
-        Command::GenerateIgnore => generate_ignore(&app)?,
-        Command::Scratch => scratch(&app),
-        Command::ShowDescription => show_description(&app)?,
-    }
-    Ok(())
-}
+pub use self::version::{Version, VersionParseError, VersionParseResult};

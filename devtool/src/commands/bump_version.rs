@@ -21,8 +21,8 @@
 //
 use crate::app::App;
 use crate::product_info::ProjectInfo;
-use crate::version::Version;
 use anyhow::{bail, Result};
+use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
 use std::path::Path;
 use std::process::Command;

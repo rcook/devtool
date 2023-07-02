@@ -1,0 +1,15 @@
+[package]
+authors = ["Richard Cook"]
+categories = ["development-tools"]
+description = "Richard's Development Tool - Version Support"
+edition = "2021"
+homepage = "https://github.com/rcook/devtool"
+keywords = ["general"]
+license = "MIT"
+name = "devtool-version"
+repository = "https://github.com/rcook/devtool"
+version = "0.0.20"
+
+[dependencies]
+anyhow = "1.0.71"
+thiserror = "1.0.40"

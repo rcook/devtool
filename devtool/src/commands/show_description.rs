@@ -20,8 +20,8 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::version::Version;
 use anyhow::Result;
+use devtool_version::Version;
 
 pub fn show_description(app: &App) -> Result<()> {
     if let Some(description) = app.git.describe()? {

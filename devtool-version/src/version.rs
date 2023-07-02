@@ -47,6 +47,7 @@ impl Version {
         self.inner.increment();
     }
 
+    #[must_use]
     pub fn dupe(&self) -> Self {
         Self {
             inner: self.inner.dupe(),
