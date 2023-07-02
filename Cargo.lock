@@ -219,6 +219,7 @@ dependencies = [
  "anyhow",
  "log",
  "rstest",
+ "thiserror",
 ]
 
 [[package]]

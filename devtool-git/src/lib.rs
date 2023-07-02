@@ -36,4 +36,4 @@ mod description;
 mod wrapper;
 
 pub use self::description::GitDescription;
-pub use self::wrapper::Git;
+pub use self::wrapper::{Git, GitError, GitResult};

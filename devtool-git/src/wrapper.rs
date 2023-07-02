@@ -20,11 +20,30 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use super::GitDescription;
-use anyhow::{bail, Result};
+use anyhow::anyhow;
 use log::trace;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::result::Result as StdResult;
 use std::str::from_utf8;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum GitError {
+    #[error("command {0} failed with exit code {1}")]
+    CommandFailedWithCode(String, i32),
+
+    #[error("command {0} failed")]
+    CommandFailed(String),
+
+    #[error("e-mail or name is not configured in Git")]
+    EmailOrNameNotConfigured,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+pub type GitResult<T> = StdResult<T, GitError>;
 
 pub struct Git {
     pub dir: PathBuf,
@@ -39,7 +58,7 @@ struct CommandResult {
 }
 
 impl CommandResult {
-    fn from_output<S>(command: S, output: &Output) -> Result<Self>
+    fn from_output<S>(command: S, output: &Output) -> GitResult<Self>
     where
         S: Into<String>,
     {
@@ -47,16 +66,24 @@ impl CommandResult {
             command: command.into(),
             succeeded: output.status.success(),
             exit_code: output.status.code(),
-            stderr: String::from(from_utf8(output.stderr.as_slice())?.trim()),
-            stdout: String::from(from_utf8(output.stdout.as_slice())?.trim()),
+            stderr: String::from(
+                from_utf8(output.stderr.as_slice())
+                    .map_err(|e| GitError::Other(anyhow!(e)))?
+                    .trim(),
+            ),
+            stdout: String::from(
+                from_utf8(output.stdout.as_slice())
+                    .map_err(|e| GitError::Other(anyhow!(e)))?
+                    .trim(),
+            ),
         })
     }
 
-    fn ok(self) -> Result<Self> {
+    fn ok(self) -> GitResult<Self> {
         if !self.succeeded {
             match self.exit_code {
-                Some(code) => bail!("{} failed with exit code {}", self.command, code),
-                None => bail!("{} failed", self.command),
+                Some(code) => return Err(GitError::CommandFailedWithCode(self.command, code)),
+                None => return Err(GitError::CommandFailed(self.command)),
             };
         }
         Ok(self)
@@ -71,7 +98,7 @@ impl Git {
         Self { dir: dir.into() }
     }
 
-    pub fn describe(&self) -> Result<Option<GitDescription>> {
+    pub fn describe(&self) -> GitResult<Option<GitDescription>> {
         let result = self.run("describe", |_| {})?;
 
         if result.exit_code == Some(128) && result.stderr.contains("cannot describe anything") {
@@ -81,7 +108,7 @@ impl Git {
         Ok(GitDescription::parse(result.ok()?.stdout))
     }
 
-    pub fn get_current_branch(&self) -> Result<String> {
+    pub fn get_current_branch(&self) -> GitResult<String> {
         let result = self
             .run("branch", |c| {
                 c.arg("--show-current");
@@ -90,7 +117,7 @@ impl Git {
         Ok(result.stdout)
     }
 
-    pub fn get_upstream(&self, branch: &str) -> Result<Option<String>> {
+    pub fn get_upstream(&self, branch: &str) -> GitResult<Option<String>> {
         let result = self.run("rev-parse", |c| {
             c.arg("--abbrev-ref");
             c.arg(format!("{branch}@{{upstream}}"));
@@ -103,7 +130,7 @@ impl Git {
         Ok(Some(result.ok()?.stdout))
     }
 
-    pub fn create_annotated_tag(&self, tag: &str) -> Result<()> {
+    pub fn create_annotated_tag(&self, tag: &str) -> GitResult<()> {
         self.run("tag", |c| {
             c.arg("--annotate");
             c.arg(tag);
@@ -114,7 +141,7 @@ impl Git {
         Ok(())
     }
 
-    pub fn push_all(&self) -> Result<()> {
+    pub fn push_all(&self) -> GitResult<()> {
         self.run("push", |c| {
             c.arg("--follow-tags");
         })?
@@ -122,7 +149,7 @@ impl Git {
         Ok(())
     }
 
-    pub fn status(&self, ignored: bool) -> Result<String> {
+    pub fn status(&self, ignored: bool) -> GitResult<String> {
         let result = self
             .run("status", |c| {
                 c.arg("--porcelain");
@@ -134,7 +161,7 @@ impl Git {
         Ok(result.stdout)
     }
 
-    pub fn add<P>(&self, path: P) -> Result<()>
+    pub fn add<P>(&self, path: P) -> GitResult<()>
     where
         P: AsRef<Path>,
     {
@@ -145,7 +172,7 @@ impl Git {
         Ok(())
     }
 
-    pub fn commit<S>(&self, message: S) -> Result<()>
+    pub fn commit<S>(&self, message: S) -> GitResult<()>
     where
         S: AsRef<str>,
     {
@@ -155,14 +182,14 @@ impl Git {
         })?;
 
         if result.exit_code == Some(128) && result.stderr.contains("tell me who you are") {
-            bail!("E-mail address and/or name is not set in Git repo")
+            return Err(GitError::EmailOrNameNotConfigured);
         }
 
         result.ok()?;
         Ok(())
     }
 
-    pub fn read_config<S>(&self, name: S) -> Result<Option<String>>
+    pub fn read_config<S>(&self, name: S) -> GitResult<Option<String>>
     where
         S: AsRef<str>,
     {
@@ -177,7 +204,7 @@ impl Git {
         Ok(Some(result.ok()?.stdout))
     }
 
-    pub fn is_tracked<P>(&self, path: P) -> Result<bool>
+    pub fn is_tracked<P>(&self, path: P) -> GitResult<bool>
     where
         P: AsRef<Path>,
     {
@@ -189,7 +216,7 @@ impl Git {
         Ok(!result.stdout.is_empty())
     }
 
-    fn run<F>(&self, command: &str, build: F) -> Result<CommandResult>
+    fn run<F>(&self, command: &str, build: F) -> GitResult<CommandResult>
     where
         F: FnOnce(&mut Command),
     {
@@ -200,7 +227,10 @@ impl Git {
         build(&mut c);
 
         let command_str = format!("{c:?}");
-        let result = CommandResult::from_output(command, &c.output()?)?;
+        let result = CommandResult::from_output(
+            command,
+            &c.output().map_err(|e| GitError::Other(anyhow!(e)))?,
+        )?;
         trace!(
             "command={}, exit_code={:?}, stdout=[{}], stderr=[{}]",
             command_str,
