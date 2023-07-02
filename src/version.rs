@@ -19,34 +19,87 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-pub trait Version: std::fmt::Debug + std::fmt::Display {
-    fn set_prefix(&mut self, value: bool);
-    fn increment(&mut self);
-    fn dupe(&self) -> Box<dyn Version>;
+use anyhow::anyhow;
+use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
+use std::result::Result as StdResult;
+use std::str::FromStr;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum VersionParseError {
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
-pub fn parse_version(s: &str) -> Option<Box<dyn Version>> {
+pub type VersionParseResult<T> = StdResult<T, VersionParseError>;
+
+#[derive(Debug)]
+pub struct Version {
+    inner: Box<dyn VersionInner>,
+}
+
+impl Version {
+    pub fn set_prefix(&mut self, value: bool) {
+        self.inner.set_prefix(value);
+    }
+
+    pub fn increment(&mut self) {
+        self.inner.increment();
+    }
+
+    pub fn dupe(&self) -> Self {
+        Self {
+            inner: self.inner.dupe(),
+        }
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.inner)
+    }
+}
+
+impl FromStr for Version {
+    type Err = VersionParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let inner = parse_version_inner(s)?;
+        Ok(Self { inner })
+    }
+}
+
+pub trait VersionInner: Debug + Display {
+    fn set_prefix(&mut self, value: bool);
+    fn increment(&mut self);
+    fn dupe(&self) -> Box<dyn VersionInner>;
+}
+
+fn parse_version_inner(s: &str) -> VersionParseResult<Box<dyn VersionInner>> {
     let has_prefix = s.starts_with('v');
     let s1 = if has_prefix { &s[1..] } else { s };
     let parts = s1.split('.').collect::<Vec<_>>();
 
     match parts.len() {
-        1 => Some(Box::new(VersionSingleton {
+        1 => Ok(Box::new(VersionSingleton {
             has_prefix,
-            major: parts[0].parse::<i32>().ok()?,
+            major: parts[0].parse::<i32>().map_err(|e| anyhow!(e))?,
         })),
-        2 => Some(Box::new(VersionPair {
+        2 => Ok(Box::new(VersionPair {
             has_prefix,
-            major: parts[0].parse::<i32>().ok()?,
-            minor: parts[1].parse::<i32>().ok()?,
+            major: parts[0].parse::<i32>().map_err(|e| anyhow!(e))?,
+            minor: parts[1].parse::<i32>().map_err(|e| anyhow!(e))?,
         })),
-        3 => Some(Box::new(VersionTriple {
+        3 => Ok(Box::new(VersionTriple {
             has_prefix,
-            major: parts[0].parse::<i32>().ok()?,
-            minor: parts[1].parse::<i32>().ok()?,
-            build: parts[2].parse::<i32>().ok()?,
+            major: parts[0].parse::<i32>().map_err(|e| anyhow!(e))?,
+            minor: parts[1].parse::<i32>().map_err(|e| anyhow!(e))?,
+            build: parts[2].parse::<i32>().map_err(|e| anyhow!(e))?,
         })),
-        _ => None,
+        _ => Err(VersionParseError::Other(anyhow!(
+            "could not parse {} as version",
+            s
+        ))),
     }
 }
 
@@ -56,7 +109,7 @@ struct VersionSingleton {
     major: i32,
 }
 
-impl Version for VersionSingleton {
+impl VersionInner for VersionSingleton {
     fn set_prefix(&mut self, value: bool) {
         self.has_prefix = value;
     }
@@ -65,7 +118,7 @@ impl Version for VersionSingleton {
         self.major += 1;
     }
 
-    fn dupe(&self) -> Box<dyn Version> {
+    fn dupe(&self) -> Box<dyn VersionInner> {
         Box::new(Self {
             has_prefix: self.has_prefix,
             major: self.major,
@@ -89,7 +142,7 @@ struct VersionPair {
     minor: i32,
 }
 
-impl Version for VersionPair {
+impl VersionInner for VersionPair {
     fn set_prefix(&mut self, value: bool) {
         self.has_prefix = value;
     }
@@ -98,7 +151,7 @@ impl Version for VersionPair {
         self.minor += 1;
     }
 
-    fn dupe(&self) -> Box<dyn Version> {
+    fn dupe(&self) -> Box<dyn VersionInner> {
         Box::new(Self {
             has_prefix: self.has_prefix,
             major: self.major,
@@ -124,7 +177,7 @@ struct VersionTriple {
     build: i32,
 }
 
-impl Version for VersionTriple {
+impl VersionInner for VersionTriple {
     fn set_prefix(&mut self, value: bool) {
         self.has_prefix = value;
     }
@@ -133,7 +186,7 @@ impl Version for VersionTriple {
         self.build += 1;
     }
 
-    fn dupe(&self) -> Box<dyn Version> {
+    fn dupe(&self) -> Box<dyn VersionInner> {
         Box::new(Self {
             has_prefix: self.has_prefix,
             major: self.major,

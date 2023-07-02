@@ -20,13 +20,13 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::version::parse_version;
+use crate::version::Version;
 use anyhow::Result;
 
 pub fn show_description(app: &App) -> Result<()> {
     if let Some(description) = app.git.describe()? {
         println!("description={description:#?}");
-        if let Some(version) = parse_version(&description.tag) {
+        if let Ok(version) = description.tag.parse::<Version>() {
             println!("version={version:#?}");
         } else {
             println!("Could not parse tag as version");

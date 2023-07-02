@@ -20,31 +20,15 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::version::parse_version;
-use anyhow::{anyhow, bail, Result};
+use crate::product_info::ProjectInfo;
+use crate::version::Version;
+use anyhow::{bail, Result};
 use joatmon::{read_toml_file_edit, safe_write_file};
-use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
 use toml_edit::value;
 
 const INITIAL_VERSION_STR: &str = "v0.0.0";
-
-#[derive(Debug)]
-enum ProjectInfo {
-    Cargo { cargo_toml_path: PathBuf },
-    Other,
-}
-
-impl ProjectInfo {
-    fn infer(app: &App) -> Self {
-        let cargo_toml_path = app.git.dir.join("Cargo.toml");
-        if cargo_toml_path.is_file() {
-            Self::Cargo { cargo_toml_path }
-        } else {
-            Self::Other
-        }
-    }
-}
 
 pub fn bump_version(app: &App, push_all: bool) -> Result<()> {
     if app.git.read_config("user.name")?.is_none() {
@@ -72,59 +56,20 @@ pub fn bump_version(app: &App, push_all: bool) -> Result<()> {
         );
     }
 
-    let new_version = match app.git.describe()? {
-        Some(description) => {
-            if description.offset.is_none() {
-                bail!("No commits since most recent tag \"{}\"", description.tag)
-            }
-
-            match parse_version(&description.tag) {
-                Some(mut version) => {
-                    println!("description={description:#?}");
-                    version.increment();
-                    version
-                }
-                None => bail!("Cannot parse tag \"{}\" as version", description.tag),
-            }
-        }
-        None => parse_version(INITIAL_VERSION_STR).expect("must be valid"),
-    };
-
-    let project_info = ProjectInfo::infer(app);
+    let new_version = get_new_version(app)?;
+    println!("new_version={new_version}");
+    let project_info = ProjectInfo::infer(app)?;
     println!("project_info={project_info:#?}");
 
-    if let ProjectInfo::Cargo { cargo_toml_path } = project_info {
-        let mut doc = read_toml_file_edit(&cargo_toml_path)?;
-        let package = doc
-            .as_table_mut()
-            .get_mut("package")
-            .ok_or_else(|| anyhow!("Expected \"package\" table"))?
-            .as_table_mut()
-            .ok_or_else(|| anyhow!("\"package\" must be a table"))?;
-
+    if !project_info.cargo_toml_paths.is_empty() {
         let mut new_cargo_version = new_version.dupe();
         new_cargo_version.set_prefix(false);
-        _ = package.insert("version", value(format!("{new_cargo_version}")));
 
-        let result = doc.to_string();
-        safe_write_file(&cargo_toml_path, result, true)?;
-
-        let cargo_lock_path = app.git.dir.join("Cargo.lock");
-        if app.git.is_tracked(&cargo_lock_path)? {
-            if !Command::new("cargo")
-                .arg("build")
-                .arg("--manifest-path")
-                .arg(&cargo_toml_path)
-                .status()?
-                .success()
-            {
-                bail!("cargo build failed")
-            }
-
-            app.git.add(&cargo_lock_path)?;
+        for cargo_toml_path in project_info.cargo_toml_paths {
+            update_cargo_toml(app, &cargo_toml_path, &new_cargo_version)?;
         }
 
-        app.git.add(&cargo_toml_path)?;
+        regenerate_cargo_lock(app)?;
 
         app.git
             .commit(format!("Bump version to {new_cargo_version}"))?;
@@ -140,6 +85,61 @@ pub fn bump_version(app: &App, push_all: bool) -> Result<()> {
         println!("Pushed commits and tags");
     } else {
         println!("Skipping push of commits and tags");
+    }
+
+    Ok(())
+}
+
+fn get_new_version(app: &App) -> Result<Version> {
+    Ok(match app.git.describe()? {
+        Some(description) => {
+            if description.offset.is_none() {
+                bail!("No commits since most recent tag \"{}\"", description.tag)
+            }
+
+            let mut version = description.tag.parse::<Version>()?;
+            println!("description={description:#?}");
+            version.increment();
+            version
+        }
+        None => INITIAL_VERSION_STR
+            .parse::<Version>()
+            .expect("must be valid"),
+    })
+}
+
+fn update_cargo_toml(app: &App, cargo_toml_path: &Path, new_cargo_version: &Version) -> Result<()> {
+    let mut doc = read_toml_file_edit(cargo_toml_path)?;
+
+    if let Some(package) = doc
+        .as_table_mut()
+        .get_mut("package")
+        .and_then(toml_edit::Item::as_table_mut)
+    {
+        _ = package.insert("version", value(format!("{new_cargo_version}")));
+        let result = doc.to_string();
+        safe_write_file(cargo_toml_path, result, true)?;
+        app.git.add(cargo_toml_path)?;
+    }
+
+    Ok(())
+}
+
+fn regenerate_cargo_lock(app: &App) -> Result<()> {
+    let cargo_toml_path = app.git.dir.join("Cargo.toml");
+    let cargo_lock_path = app.git.dir.join("Cargo.lock");
+    if app.git.is_tracked(&cargo_toml_path)? && app.git.is_tracked(&cargo_lock_path)? {
+        if !Command::new("cargo")
+            .arg("build")
+            .arg("--manifest-path")
+            .arg(&cargo_toml_path)
+            .status()?
+            .success()
+        {
+            bail!("cargo build failed")
+        }
+
+        app.git.add(&cargo_lock_path)?;
     }
 
     Ok(())

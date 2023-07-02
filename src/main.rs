@@ -37,6 +37,7 @@ mod args;
 mod commands;
 mod git;
 mod logging;
+mod product_info;
 mod version;
 
 use crate::app::App;
