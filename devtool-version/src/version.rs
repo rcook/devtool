@@ -127,8 +127,8 @@ impl VersionInner for VersionSingleton {
     }
 }
 
-impl std::fmt::Display for VersionSingleton {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for VersionSingleton {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         if self.has_prefix {
             write!(f, "v")?;
         }
@@ -161,8 +161,8 @@ impl VersionInner for VersionPair {
     }
 }
 
-impl std::fmt::Display for VersionPair {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for VersionPair {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         if self.has_prefix {
             write!(f, "v")?;
         }
@@ -197,8 +197,8 @@ impl VersionInner for VersionTriple {
     }
 }
 
-impl std::fmt::Display for VersionTriple {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for VersionTriple {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         if self.has_prefix {
             write!(f, "v")?;
         }
