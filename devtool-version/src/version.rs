@@ -211,3 +211,42 @@ impl std::fmt::Display for VersionTriple {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Version;
+    use anyhow::Result;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("1", "v1", "2", "1")]
+    #[case("1", "v1", "v2", "v1")]
+    #[case("1.2", "v1.2", "1.3", "1.2")]
+    #[case("1.2", "v1.2", "v1.3", "v1.2")]
+    #[case("1.2.3", "v1.2.3", "1.2.4", "1.2.3")]
+    #[case("1.2.3", "v1.2.3", "v1.2.4", "v1.2.3")]
+    fn basics(
+        #[case] expected_no_prefix: &str,
+        #[case] expected_prefix: &str,
+        #[case] expected_incremented: &str,
+        #[case] input: &str,
+    ) -> Result<()> {
+        let mut version = input.parse::<Version>()?;
+        assert_eq!(input, version.to_string());
+
+        version.set_prefix(false);
+        assert_eq!(expected_no_prefix, version.to_string());
+
+        version.set_prefix(true);
+        assert_eq!(expected_prefix, version.to_string());
+
+        let other_version = version.dupe();
+        assert_eq!(version.to_string(), other_version.to_string());
+
+        let mut version = input.parse::<Version>()?;
+        version.increment();
+        assert_eq!(expected_incremented, version.to_string());
+
+        Ok(())
+    }
+}

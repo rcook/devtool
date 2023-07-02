@@ -13,3 +13,6 @@ version = "0.0.20"
 [dependencies]
 anyhow = "1.0.71"
 thiserror = "1.0.40"
+
+[dev-dependencies]
+rstest = "0.17.0"

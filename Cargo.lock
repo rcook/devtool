@@ -226,6 +226,7 @@ name = "devtool-version"
 version = "0.0.20"
 dependencies = [
  "anyhow",
+ "rstest",
  "thiserror",
 ]
 
