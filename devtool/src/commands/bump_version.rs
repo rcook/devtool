@@ -56,10 +56,18 @@ pub fn bump_version(app: &App, push_all: bool) -> Result<()> {
         );
     }
 
+    let project_info = app.read_config()?.map_or_else(
+        || ProjectInfo::infer(app),
+        |c| {
+            Ok(ProjectInfo {
+                cargo_toml_paths: c.cargo_toml_paths,
+            })
+        },
+    )?;
+    println!("project_info={project_info:#?}");
+
     let new_version = get_new_version(app)?;
     println!("new_version={new_version}");
-    let project_info = ProjectInfo::infer(app)?;
-    println!("project_info={project_info:#?}");
 
     if !project_info.cargo_toml_paths.is_empty() {
         let mut new_cargo_version = new_version.dupe();

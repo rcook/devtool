@@ -20,18 +20,14 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::constants::CONFIG_FILE_NAME;
 use crate::serialization::Config;
 use anyhow::Result;
-use joatmon::safe_write_file;
 
 pub fn generate_config(app: &App) -> Result<()> {
-    let config_path = app.git.dir.join(CONFIG_FILE_NAME);
-    safe_write_file(
-        &config_path,
-        serde_yaml::to_string(&Config {
+    app.write_config(
+        &Config {
             cargo_toml_paths: Vec::new(),
-        })?,
+        },
         false,
     )?;
     Ok(())

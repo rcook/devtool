@@ -19,7 +19,10 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+use crate::{constants::CONFIG_FILE_NAME, serialization::Config};
+use anyhow::Result;
 use devtool_git::Git;
+use joatmon::{read_yaml_file, safe_write_file};
 use std::path::PathBuf;
 
 pub struct App {
@@ -37,5 +40,28 @@ impl App {
             cwd: cwd.into(),
             git: Git::new(git_dir),
         }
+    }
+
+    pub fn config_path(&self) -> PathBuf {
+        self.git.dir.join(CONFIG_FILE_NAME)
+    }
+
+    pub fn read_config(&self) -> Result<Option<Config>> {
+        // TBD: Complete with time-of-check time-of-use race condition!
+        let config_path = self.config_path();
+        if config_path.is_file() {
+            Ok(Some(read_yaml_file(&config_path)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn write_config(&self, config: &Config, overwrite: bool) -> Result<()> {
+        safe_write_file(
+            &self.config_path(),
+            serde_yaml::to_string(config)?,
+            overwrite,
+        )?;
+        Ok(())
     }
 }
