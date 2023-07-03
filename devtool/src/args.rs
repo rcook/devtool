@@ -75,7 +75,7 @@ pub enum Command {
         _no_push_all: bool,
     },
 
-    #[command(name = "generate-ignore", about = "Generate .gitignore file")]
+    #[command(name = "gen-ignore", about = "Generate .gitignore file")]
     GenerateIgnore,
 
     #[command(name = "scratch", about = "(Experimental)")]
