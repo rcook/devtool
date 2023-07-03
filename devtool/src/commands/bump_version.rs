@@ -21,9 +21,11 @@
 //
 use crate::app::App;
 use crate::project_info::ProjectInfo;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
+use path_absolutize::Absolutize;
+use std::io::Result as IOResult;
 use std::path::Path;
 use std::process::Command;
 use toml_edit::value;
@@ -59,9 +61,12 @@ pub fn bump_version(app: &App, push_all: bool) -> Result<()> {
     let project_info = app.read_config()?.map_or_else(
         || ProjectInfo::infer(app),
         |c| {
-            Ok(ProjectInfo {
-                cargo_toml_paths: c.cargo_toml_paths,
-            })
+            c.cargo_toml_paths
+                .into_iter()
+                .map(|p| p.absolutize_from(&app.git.dir).map(|p| p.to_path_buf()))
+                .collect::<IOResult<Vec<_>>>()
+                .map(|cargo_toml_paths| ProjectInfo { cargo_toml_paths })
+                .map_err(|e| anyhow!(e))
         },
     )?;
     println!("project_info={project_info:#?}");
