@@ -19,14 +19,6 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod bump_version;
-mod generate_config;
-mod generate_ignore;
-mod scratch;
-mod show_description;
+mod config;
 
-pub use self::bump_version::bump_version;
-pub use self::generate_config::generate_config;
-pub use self::generate_ignore::generate_ignore;
-pub use self::scratch::scratch;
-pub use self::show_description::show_description;
+pub use self::config::Config;

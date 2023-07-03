@@ -35,12 +35,14 @@
 mod app;
 mod args;
 mod commands;
+mod constants;
 mod logging;
 mod project_info;
+mod serialization;
 
 use crate::app::App;
 use crate::args::{Args, Command};
-use crate::commands::{bump_version, generate_ignore, scratch, show_description};
+use crate::commands::{bump_version, generate_config, generate_ignore, scratch, show_description};
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use colored::Colorize;
@@ -82,6 +84,7 @@ fn run() -> Result<()> {
             push_all,
             _no_push_all,
         } => bump_version(&app, push_all)?,
+        Command::GenerateConfig => generate_config(&app)?,
         Command::GenerateIgnore => generate_ignore(&app)?,
         Command::Scratch => scratch(&app),
         Command::ShowDescription => show_description(&app)?,

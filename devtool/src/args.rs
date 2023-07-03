@@ -75,6 +75,9 @@ pub enum Command {
         _no_push_all: bool,
     },
 
+    #[command(name = "gen-config", about = "Generate devtool configuration file")]
+    GenerateConfig,
+
     #[command(name = "gen-ignore", about = "Generate .gitignore file")]
     GenerateIgnore,
 

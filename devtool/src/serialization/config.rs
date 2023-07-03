@@ -19,14 +19,11 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod bump_version;
-mod generate_config;
-mod generate_ignore;
-mod scratch;
-mod show_description;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
-pub use self::bump_version::bump_version;
-pub use self::generate_config::generate_config;
-pub use self::generate_ignore::generate_ignore;
-pub use self::scratch::scratch;
-pub use self::show_description::show_description;
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Config {
+    #[serde(rename = "cargo_toml_paths")]
+    pub cargo_toml_paths: Vec<PathBuf>,
+}

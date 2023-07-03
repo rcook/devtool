@@ -19,14 +19,20 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-mod bump_version;
-mod generate_config;
-mod generate_ignore;
-mod scratch;
-mod show_description;
+use crate::app::App;
+use crate::constants::CONFIG_FILE_NAME;
+use crate::serialization::Config;
+use anyhow::Result;
+use joatmon::safe_write_file;
 
-pub use self::bump_version::bump_version;
-pub use self::generate_config::generate_config;
-pub use self::generate_ignore::generate_ignore;
-pub use self::scratch::scratch;
-pub use self::show_description::show_description;
+pub fn generate_config(app: &App) -> Result<()> {
+    let config_path = app.git.dir.join(CONFIG_FILE_NAME);
+    safe_write_file(
+        &config_path,
+        serde_yaml::to_string(&Config {
+            cargo_toml_paths: Vec::new(),
+        })?,
+        false,
+    )?;
+    Ok(())
+}
