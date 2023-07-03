@@ -79,6 +79,7 @@ impl CommandResult {
         })
     }
 
+    #[allow(clippy::missing_const_for_fn)]
     fn ok(self) -> GitResult<Self> {
         if !self.succeeded {
             match self.exit_code {
