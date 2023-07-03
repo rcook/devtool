@@ -20,7 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
-use crate::product_info::ProjectInfo;
+use crate::project_info::ProjectInfo;
 use anyhow::{bail, Result};
 use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
