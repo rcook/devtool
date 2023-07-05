@@ -20,6 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 use std::result::Result as StdResult;
 use std::str::FromStr;
@@ -55,6 +56,14 @@ impl Version {
     }
 }
 
+impl Clone for Version {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.dupe(),
+        }
+    }
+}
+
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.inner)
@@ -70,7 +79,27 @@ impl FromStr for Version {
     }
 }
 
-pub trait VersionInner: Debug + Display {
+impl<'de> Deserialize<'de> for Version {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .parse::<Self>()
+            .map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for Version {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+pub trait VersionInner: Debug + Display + Send + Sync {
     fn set_prefix(&mut self, value: bool);
     fn increment(&mut self);
     fn dupe(&self) -> Box<dyn VersionInner>;

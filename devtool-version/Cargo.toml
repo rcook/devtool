@@ -12,6 +12,7 @@ version = "0.0.20"
 
 [dependencies]
 anyhow = "1.0.71"
+serde = "1.0.166"
 thiserror = "1.0.40"
 
 [dev-dependencies]

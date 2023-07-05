@@ -49,9 +49,10 @@ pub fn run() -> Result<()> {
 
     match args.command {
         Command::BumpVersion {
+            version,
             push_all,
             _no_push_all,
-        } => bump_version(&app, push_all)?,
+        } => bump_version(&app, &version, push_all)?,
         Command::GenerateConfig => generate_config(&app)?,
         Command::GenerateIgnore => generate_ignore(&app)?,
         Command::Scratch => scratch(&app),

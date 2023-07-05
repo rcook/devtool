@@ -20,6 +20,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use clap::{ArgAction, Parser, Subcommand};
+use devtool_version::Version;
 use log::LevelFilter;
 use path_absolutize::Absolutize;
 use std::path::PathBuf;
@@ -64,7 +65,10 @@ pub enum Command {
         about = "Update Cargo.toml version, generate new Git tag and push"
     )]
     BumpVersion {
-        #[arg(help = "Do not push commits and tags",long = "no-push-all", action = ArgAction::SetFalse)]
+        #[arg(help = "Version number to bump to")]
+        version: Option<Version>,
+
+        #[arg(help = "Do not push commits and tags", long = "no-push-all", action = ArgAction::SetFalse)]
         push_all: bool,
 
         #[arg(

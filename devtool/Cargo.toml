@@ -18,6 +18,7 @@ colored = "2.0.0"
 devtool-git = { path = "../devtool-git" }
 devtool-version = { path = "../devtool-version" }
 joatmon = "0.0.29"
+lazy_static = "1.4.0"
 log = { version = "0.4.19", features = ["std"] }
 path-absolutize = "3.1.0"
 rstest = "0.17.0"
