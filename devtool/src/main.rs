@@ -38,19 +38,13 @@ mod commands;
 mod constants;
 mod logging;
 mod project_info;
+mod run;
 mod serialization;
 
-use crate::app::App;
-use crate::args::{Args, Command};
-use crate::commands::{bump_version, generate_config, generate_ignore, scratch, show_description};
-use anyhow::{anyhow, Result};
-use clap::Parser;
+use crate::run::run;
 use colored::Colorize;
-use joatmon::find_sentinel_dir;
-use logging::init_logging;
-use std::env::current_dir;
-use std::path::Path;
 use std::process::exit;
+
 fn main() {
     exit(match run() {
         Ok(()) => 0,
@@ -59,35 +53,4 @@ fn main() {
             1
         }
     })
-}
-
-fn run() -> Result<()> {
-    let cwd = current_dir()?;
-    let args = Args::parse();
-
-    init_logging(args.detailed, args.log_level)?;
-
-    let git_dir = args
-        .git_dir
-        .or_else(|| {
-            find_sentinel_dir(Path::new(".git"), &cwd, None).map(|mut dir| {
-                dir.pop();
-                dir
-            })
-        })
-        .ok_or_else(|| anyhow!("Cannot infer Git project directory"))?;
-
-    let app = App::new(&cwd, git_dir);
-
-    match args.command {
-        Command::BumpVersion {
-            push_all,
-            _no_push_all,
-        } => bump_version(&app, push_all)?,
-        Command::GenerateConfig => generate_config(&app)?,
-        Command::GenerateIgnore => generate_ignore(&app)?,
-        Command::Scratch => scratch(&app),
-        Command::ShowDescription => show_description(&app)?,
-    }
-    Ok(())
 }
