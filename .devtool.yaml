@@ -1,0 +1,5 @@
+cargo_toml_paths:
+  - Cargo.toml
+  - devtool-git/Cargo.toml
+  - devtool-version/Cargo.toml
+  - devtool/Cargo.toml
