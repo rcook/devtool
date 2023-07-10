@@ -192,7 +192,7 @@ checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
 
 [[package]]
 name = "devtool"
-version = "0.0.21"
+version = "0.0.22"
 dependencies = [
  "anyhow",
  "chrono",
@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "devtool-git"
-version = "0.0.21"
+version = "0.0.22"
 dependencies = [
  "anyhow",
  "log",
@@ -224,7 +224,7 @@ dependencies = [
 
 [[package]]
 name = "devtool-version"
-version = "0.0.21"
+version = "0.0.22"
 dependencies = [
  "anyhow",
  "rstest",
