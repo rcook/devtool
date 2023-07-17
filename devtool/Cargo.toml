@@ -13,7 +13,7 @@ version = "0.0.22"
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.26"
-clap = { version = "4.3.11", features = ["derive"] }
+clap = { version = "4.3.12", features = ["derive"] }
 colored = "2.0.4"
 devtool-git = { path = "../devtool-git" }
 devtool-version = { path = "../devtool-version" }
