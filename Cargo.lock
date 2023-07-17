@@ -442,9 +442,9 @@ checksum = "62b02a5381cc465bd3041d84623d0fa3b66738b52b8e2fc3bab8ad63ab032f4a"
 
 [[package]]
 name = "joatmon"
-version = "0.0.29"
+version = "0.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc8585d245df56f5e91ad3da955ef9fa77c565550c99bd2f761fc00c7d5097b1"
+checksum = "25dd58cc34cc6d7d46e72bd0863062ce8e22c08397fbbb3acf0fb8e0574d644c"
 dependencies = [
  "anyhow",
  "chrono",
@@ -769,9 +769,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.7.4"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6135d499e69981f9ff0ef2167955a5333c35e36f6937d382974566b3d5b94ec"
+checksum = "c17e963a819c331dcacd7ab957d80bc2b9a9c1e71c804826d2f283dd65306542"
 dependencies = [
  "serde",
  "serde_spanned",
