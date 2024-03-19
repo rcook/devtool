@@ -4,3 +4,4 @@ members = [
   "devtool-git",
   "devtool-version",
 ]
+resolver = "2"

@@ -45,6 +45,7 @@ pub enum GitError {
 
 pub type GitResult<T> = StdResult<T, GitError>;
 
+#[derive(Debug)]
 pub struct Git {
     pub dir: PathBuf,
 }

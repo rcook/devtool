@@ -25,6 +25,7 @@ use devtool_git::Git;
 use joatmon::{read_yaml_file, safe_write_file};
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct App {
     pub cwd: PathBuf,
     pub git: Git,
