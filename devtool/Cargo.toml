@@ -17,7 +17,7 @@ clap = { version = "4.5.3", features = ["derive"] }
 colored = "2.1.0"
 devtool-git = { path = "../devtool-git" }
 devtool-version = { path = "../devtool-version" }
-joatmon = "0.0.30"
+joatmon = "0.0.34"
 lazy_static = "1.4.0"
 log = { version = "0.4.21", features = ["std"] }
 path-absolutize = "3.1.1"
@@ -26,4 +26,4 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 serde_yaml = "0.9.33"
 thiserror = "1.0.58"
-toml_edit = "0.19.15"
+toml_edit = "0.22.9"
