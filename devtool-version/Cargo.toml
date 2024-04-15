@@ -11,7 +11,7 @@ repository = "https://github.com/rcook/devtool"
 version = "0.0.25"
 
 [dependencies]
-anyhow = "1.0.81"
+anyhow = "1.0.82"
 serde = "1.0.197"
 thiserror = "1.0.58"
 
