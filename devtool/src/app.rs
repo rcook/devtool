@@ -27,18 +27,15 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct App {
-    pub cwd: PathBuf,
     pub git: Git,
 }
 
 impl App {
-    pub fn new<P, Q>(cwd: P, git_dir: Q) -> Self
+    pub fn new<P>(git_dir: P) -> Self
     where
         P: Into<PathBuf>,
-        Q: Into<PathBuf>,
     {
         Self {
-            cwd: cwd.into(),
             git: Git::new(git_dir),
         }
     }

@@ -64,7 +64,7 @@ pub fn run() -> Result<()> {
         .or_else(|| infer_git_dir(&cwd))
         .ok_or_else(|| anyhow!("Cannot infer Git project directory"))?;
 
-    let app = App::new(&cwd, git_dir);
+    let app = App::new(git_dir);
 
     match args.command {
         Command::BumpVersion {
