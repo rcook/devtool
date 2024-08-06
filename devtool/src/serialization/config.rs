@@ -26,4 +26,16 @@ use std::path::PathBuf;
 pub struct Config {
     #[serde(rename = "cargo_toml_paths")]
     pub cargo_toml_paths: Vec<PathBuf>,
+
+    #[serde(rename = "pyproject_toml_paths")]
+    pub pyproject_toml_paths: Vec<PathBuf>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            cargo_toml_paths: Vec::new(),
+            pyproject_toml_paths: Vec::new(),
+        }
+    }
 }

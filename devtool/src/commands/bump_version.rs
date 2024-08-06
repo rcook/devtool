@@ -21,7 +21,7 @@
 //
 use crate::app::App;
 use crate::project_info::ProjectInfo;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
 use lazy_static::lazy_static;
@@ -64,12 +64,20 @@ pub fn bump_version(app: &App, version: &Option<Version>, push_all: bool) -> Res
     let project_info = app.read_config()?.map_or_else(
         || ProjectInfo::infer(app),
         |c| {
-            c.cargo_toml_paths
+            let cargo_toml_paths = c
+                .cargo_toml_paths
                 .into_iter()
                 .map(|p| p.absolutize_from(&app.git.dir).map(|p| p.to_path_buf()))
-                .collect::<IOResult<Vec<_>>>()
-                .map(|cargo_toml_paths| ProjectInfo { cargo_toml_paths })
-                .map_err(|e| anyhow!(e))
+                .collect::<IOResult<Vec<_>>>()?;
+            let pyproject_toml_paths = c
+                .pyproject_toml_paths
+                .into_iter()
+                .map(|p| p.absolutize_from(&app.git.dir).map(|p| p.to_path_buf()))
+                .collect::<IOResult<Vec<_>>>()?;
+            Ok(ProjectInfo {
+                cargo_toml_paths,
+                pyproject_toml_paths,
+            })
         },
     )?;
 
@@ -81,20 +89,39 @@ pub fn bump_version(app: &App, version: &Option<Version>, push_all: bool) -> Res
 
     println!("project_info={project_info:#?}");
     println!("new_version={new_version}");
+    println!("cargo_toml_paths={:#?}", project_info.cargo_toml_paths);
+    println!(
+        "pyproject_toml_paths={:#?}",
+        project_info.pyproject_toml_paths
+    );
+
+    let mut new_version_without_prefix = new_version.dupe();
+    new_version_without_prefix.set_prefix(false);
+
+    let mut file_change = false;
 
     if !project_info.cargo_toml_paths.is_empty() {
-        let mut new_cargo_version = new_version.dupe();
-        new_cargo_version.set_prefix(false);
+        file_change = true;
 
-        for cargo_toml_path in project_info.cargo_toml_paths {
-            update_cargo_toml(app, &cargo_toml_path, &new_cargo_version)?;
+        for path in project_info.cargo_toml_paths {
+            update_cargo_toml(app, &path, &new_version_without_prefix)?;
         }
 
         regenerate_cargo_lock(app)?;
+    }
 
+    if !project_info.pyproject_toml_paths.is_empty() {
+        file_change = true;
+
+        for path in project_info.pyproject_toml_paths {
+            update_pyproject_toml(app, &path, &new_version_without_prefix)?;
+        }
+    }
+
+    if file_change {
         app.git
-            .commit(format!("Bump version to {new_cargo_version}"))?;
-        println!("Bump Cargo package version to {new_cargo_version}");
+            .commit(format!("Bump version to {new_version_without_prefix}"))?;
+        println!("Bumped Cargo and Python package version to {new_version_without_prefix}");
     }
 
     let tag = new_version.to_string();
@@ -127,18 +154,18 @@ fn get_new_version(app: &App, default: &Version) -> Result<Version> {
     })
 }
 
-fn update_cargo_toml(app: &App, cargo_toml_path: &Path, new_cargo_version: &Version) -> Result<()> {
-    let mut doc = read_toml_file_edit(cargo_toml_path)?;
+fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Version) -> Result<()> {
+    let mut doc = read_toml_file_edit(path)?;
 
     if let Some(package) = doc
         .as_table_mut()
         .get_mut("package")
         .and_then(toml_edit::Item::as_table_mut)
     {
-        _ = package.insert("version", value(format!("{new_cargo_version}")));
+        _ = package.insert("version", value(format!("{new_version_without_prefix}")));
         let result = doc.to_string();
-        safe_write_file(cargo_toml_path, result, true)?;
-        app.git.add(cargo_toml_path)?;
+        safe_write_file(path, result, true)?;
+        app.git.add(path)?;
     }
 
     Ok(())
@@ -159,6 +186,27 @@ fn regenerate_cargo_lock(app: &App) -> Result<()> {
         }
 
         app.git.add(&cargo_lock_path)?;
+    }
+
+    Ok(())
+}
+
+fn update_pyproject_toml(
+    app: &App,
+    path: &Path,
+    new_version_without_prefix: &Version,
+) -> Result<()> {
+    let mut doc = read_toml_file_edit(path)?;
+
+    if let Some(package) = doc
+        .as_table_mut()
+        .get_mut("project")
+        .and_then(toml_edit::Item::as_table_mut)
+    {
+        _ = package.insert("version", value(format!("{new_version_without_prefix}")));
+        let result = doc.to_string();
+        safe_write_file(path, result, true)?;
+        app.git.add(path)?;
     }
 
     Ok(())

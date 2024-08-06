@@ -24,11 +24,6 @@ use crate::serialization::Config;
 use anyhow::Result;
 
 pub fn generate_config(app: &App) -> Result<()> {
-    app.write_config(
-        &Config {
-            cargo_toml_paths: Vec::new(),
-        },
-        false,
-    )?;
+    app.write_config(&Config::default(), false)?;
     Ok(())
 }

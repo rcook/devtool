@@ -62,7 +62,7 @@ pub struct Args {
 pub enum Command {
     #[command(
         name = "bump-version",
-        about = "Update Cargo.toml version, generate new Git tag and push"
+        about = "Update Cargo.toml/pyproject.toml version, generate new Git tag and push"
     )]
     BumpVersion {
         #[arg(help = "Version number to bump to")]

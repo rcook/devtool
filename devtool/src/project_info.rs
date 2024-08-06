@@ -29,6 +29,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug)]
 pub struct ProjectInfo {
     pub cargo_toml_paths: Vec<PathBuf>,
+    pub pyproject_toml_paths: Vec<PathBuf>,
 }
 
 impl ProjectInfo {
@@ -38,8 +39,16 @@ impl ProjectInfo {
             |p| p.is_file() && p.file_name().map_or(false, |x| x == "Cargo.toml"),
             &[OsStr::new(".git"), OsStr::new("target")],
         )?;
+        let pyproject_toml_paths = Self::walk(
+            &app.git.dir,
+            |p| p.is_file() && p.file_name().map_or(false, |x| x == "pyproject.toml"),
+            &[OsStr::new(".git"), OsStr::new("target")],
+        )?;
 
-        Ok(Self { cargo_toml_paths })
+        Ok(Self {
+            cargo_toml_paths,
+            pyproject_toml_paths,
+        })
     }
 
     fn walk<P>(start_dir: &Path, predicate: P, ignore_dirs: &[&OsStr]) -> Result<Vec<PathBuf>>
