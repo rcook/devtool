@@ -29,7 +29,7 @@ jobs:
           - target: x86_64-apple-darwin
             executable_ext:
             archive_type: .tar.gz
-            build_os: macos-latest
+            build_os: macos-13
           - target: x86_64-pc-windows-msvc
             executable_ext: .exe
             archive_type: .zip
