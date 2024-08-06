@@ -24,10 +24,10 @@ use std::path::PathBuf;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    #[serde(rename = "cargo_toml_paths")]
+    #[serde(rename = "cargo_toml_paths", default)]
     pub cargo_toml_paths: Vec<PathBuf>,
 
-    #[serde(rename = "pyproject_toml_paths")]
+    #[serde(rename = "pyproject_toml_paths", default)]
     pub pyproject_toml_paths: Vec<PathBuf>,
 }
 
