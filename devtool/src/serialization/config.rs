@@ -22,20 +22,11 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Config {
     #[serde(rename = "cargo_toml_paths", default)]
     pub cargo_toml_paths: Vec<PathBuf>,
 
     #[serde(rename = "pyproject_toml_paths", default)]
     pub pyproject_toml_paths: Vec<PathBuf>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            cargo_toml_paths: Vec::new(),
-            pyproject_toml_paths: Vec::new(),
-        }
-    }
 }
