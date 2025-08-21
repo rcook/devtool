@@ -2,7 +2,7 @@
 authors = ["Richard Cook"]
 categories = ["development-tools"]
 description = "Richard's Development Tool"
-edition = "2021"
+edition = "2024"
 homepage = "https://github.com/rcook/devtool"
 keywords = ["general"]
 license = "MIT"
