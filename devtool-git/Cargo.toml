@@ -17,3 +17,8 @@ thiserror = "2.0.11"
 
 [dev-dependencies]
 rstest = "0.24.0"
+
+[lints.clippy]
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+pedantic = { level = "deny", priority = -1 }

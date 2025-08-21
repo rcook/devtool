@@ -24,18 +24,17 @@ use crate::project_info::ProjectInfo;
 use anyhow::{bail, Result};
 use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
-use lazy_static::lazy_static;
 use path_absolutize::Absolutize;
 use std::io::Result as IOResult;
 use std::path::Path;
 use std::process::Command;
+use std::sync::LazyLock;
 use toml_edit::value;
 
-lazy_static! {
-    static ref INITIAL_VERSION: Version = "v0.0.0".parse::<Version>().expect("init: must succeed");
-}
+static INITIAL_VERSION: LazyLock<Version> =
+    LazyLock::new(|| "v0.0.0".parse::<Version>().expect("init: must succeed"));
 
-pub fn bump_version(app: &App, version: &Option<Version>, push_all: bool) -> Result<()> {
+pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Result<()> {
     if app.git.read_config("user.name")?.is_none() {
         bail!("Git user name is not set")
     }

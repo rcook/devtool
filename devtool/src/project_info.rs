@@ -36,12 +36,12 @@ impl ProjectInfo {
     pub fn infer(app: &App) -> Result<Self> {
         let cargo_toml_paths = Self::walk(
             &app.git.dir,
-            |p| p.is_file() && p.file_name().map_or(false, |x| x == "Cargo.toml"),
+            |p| p.is_file() && p.file_name().is_some_and(|x| x == "Cargo.toml"),
             &[OsStr::new(".git"), OsStr::new("target")],
         )?;
         let pyproject_toml_paths = Self::walk(
             &app.git.dir,
-            |p| p.is_file() && p.file_name().map_or(false, |x| x == "pyproject.toml"),
+            |p| p.is_file() && p.file_name().is_some_and(|x| x == "pyproject.toml"),
             &[OsStr::new(".git"), OsStr::new("target")],
         )?;
 
@@ -71,7 +71,7 @@ impl ProjectInfo {
                 if path.is_dir()
                     && path
                         .file_name()
-                        .map_or(true, |x| !ignore_dirs_set.contains(x))
+                        .is_none_or(|x| !ignore_dirs_set.contains(x))
                 {
                     helper(paths, &path, predicate, ignore_dirs_set)?;
                 }
