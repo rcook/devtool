@@ -235,10 +235,7 @@ impl Git {
         )?;
         trace!(
             "command={}, exit_code={:?}, stdout=[{}], stderr=[{}]",
-            command_str,
-            result.exit_code,
-            result.stdout,
-            result.stderr
+            command_str, result.exit_code, result.stdout, result.stderr
         );
 
         Ok(result)

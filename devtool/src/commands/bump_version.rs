@@ -21,7 +21,7 @@
 //
 use crate::app::App;
 use crate::project_info::ProjectInfo;
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
 use path_absolutize::Absolutize;
@@ -49,7 +49,9 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
     }
 
     if !app.git.status(false)?.is_empty() {
-        bail!("Git working directory is not clean: please revert or commit pending changes and try again")
+        bail!(
+            "Git working directory is not clean: please revert or commit pending changes and try again"
+        )
     }
 
     if app.git.get_upstream(&branch)?.is_none() {

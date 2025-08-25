@@ -23,7 +23,7 @@ use crate::app::App;
 use crate::args::{Args, Command};
 use crate::commands::{bump_version, generate_config, generate_ignore, scratch, show_description};
 use crate::logging::init_logging;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Parser;
 use joatmon::{find_sentinel_dir, find_sentinel_file};
 use std::env::current_dir;
