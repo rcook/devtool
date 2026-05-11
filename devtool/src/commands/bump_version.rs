@@ -167,6 +167,24 @@ fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Versio
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;
+        return Ok(());
+    }
+
+    if let Some(workspace) = doc
+        .as_table_mut()
+        .get_mut("workspace")
+        .and_then(toml_edit::Item::as_table_mut)
+    {
+        if let Some(package) = workspace
+            .get_mut("package")
+            .and_then(toml_edit::Item::as_table_mut)
+        {
+            _ = package.insert("version", value(format!("{new_version_without_prefix}")));
+            let result = doc.to_string();
+            safe_write_file(path, result, true)?;
+            app.git.add(path)?;
+            return Ok(());
+        }
     }
 
     Ok(())
