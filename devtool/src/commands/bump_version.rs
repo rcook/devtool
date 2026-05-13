@@ -24,14 +24,15 @@ use crate::project_info::ProjectInfo;
 use anyhow::{Result, bail};
 use devtool_git::Git;
 use devtool_version::Version;
-use joatmon::{read_toml_file_edit, safe_write_file};
+use joatmon::safe_write_file;
 use log::info;
 use path_absolutize::Absolutize;
+use std::fs::read_to_string;
 use std::io::Result as IOResult;
 use std::path::Path;
 use std::process::Command;
 use std::sync::LazyLock;
-use toml_edit::value;
+use toml_edit::{DocumentMut, value};
 
 static INITIAL_VERSION: LazyLock<Version> =
     LazyLock::new(|| "v0.0.0".parse::<Version>().expect("init: must succeed"));
@@ -207,7 +208,7 @@ fn get_new_version(app: &App, default: &Version) -> Result<Version> {
 }
 
 fn update_cargo_toml(app: &App, path: &Path, new_version: &Version) -> Result<bool> {
-    let mut doc = read_toml_file_edit(path)?;
+    let mut doc = read_to_string(path)?.parse::<DocumentMut>()?;
 
     if let Some(package) = doc
         .as_table_mut()
@@ -260,7 +261,7 @@ fn regenerate_cargo_lock(app: &App) -> Result<()> {
 }
 
 fn update_pyproject_toml(app: &App, path: &Path, new_version: &Version) -> Result<bool> {
-    let mut doc = read_toml_file_edit(path)?;
+    let mut doc = read_to_string(path)?.parse::<DocumentMut>()?;
 
     if let Some(package) = doc
         .as_table_mut()

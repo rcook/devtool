@@ -23,7 +23,7 @@ serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 serde_yaml = "0.9.34"
 thiserror = "2.0.11"
-toml_edit = "0.22.23"
+toml_edit = "0.25"
 
 [dev-dependencies]
 rstest = "0.26"
