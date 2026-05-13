@@ -63,3 +63,65 @@ impl App {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::App;
+    use crate::serialization::Config;
+    use std::path::PathBuf;
+
+    #[test]
+    fn new_stores_path() {
+        let app = App::new("/some/dir");
+        assert_eq!(PathBuf::from("/some/dir"), app.git.dir);
+    }
+
+    #[test]
+    fn config_path_appends_config_file_name() {
+        let app = App::new("/project");
+        assert_eq!(PathBuf::from("/project/.devtool.yaml"), app.config_path());
+    }
+
+    #[test]
+    fn read_config_returns_none_when_no_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path());
+        let config = app.read_config().unwrap();
+        assert!(config.is_none());
+    }
+
+    #[test]
+    fn write_and_read_config_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path());
+        let config = Config {
+            cargo_toml_paths: vec![PathBuf::from("Cargo.toml")],
+            pyproject_toml_paths: vec![],
+        };
+        app.write_config(&config, false).unwrap();
+        let read_back = app.read_config().unwrap().unwrap();
+        assert_eq!(config.cargo_toml_paths, read_back.cargo_toml_paths);
+        assert_eq!(config.pyproject_toml_paths, read_back.pyproject_toml_paths);
+    }
+
+    #[test]
+    fn write_config_no_overwrite_fails_when_file_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path());
+        let config = Config::default();
+        app.write_config(&config, false).unwrap();
+        let result = app.write_config(&config, false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn write_config_overwrite_succeeds_when_file_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path());
+        let config = Config::default();
+        app.write_config(&config, false).unwrap();
+        app.write_config(&config, true).unwrap();
+        let read_back = app.read_config().unwrap().unwrap();
+        assert!(read_back.cargo_toml_paths.is_empty());
+    }
+}

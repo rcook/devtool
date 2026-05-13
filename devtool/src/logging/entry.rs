@@ -89,3 +89,87 @@ where
 {
     serializer.serialize_str(value.as_str())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{BriefEntry, DetailedEntry};
+    use log::{Level, Record};
+
+    #[test]
+    fn brief_entry_json_has_expected_keys() {
+        let record = Record::builder()
+            .level(Level::Info)
+            .target("test_target")
+            .args(format_args!("test message"))
+            .build();
+        let entry = BriefEntry::new(&record);
+        let json = serde_json::to_string(&entry).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let obj = value.as_object().unwrap();
+        assert!(obj.contains_key("ts"));
+        assert!(obj.contains_key("tgt"));
+        assert!(obj.contains_key("l"));
+        assert!(obj.contains_key("msg"));
+        assert_eq!("test_target", obj["tgt"].as_str().unwrap());
+        assert_eq!("INFO", obj["l"].as_str().unwrap());
+        assert_eq!("test message", obj["msg"].as_str().unwrap());
+    }
+
+    #[test]
+    fn detailed_entry_json_has_expected_keys() {
+        let record = Record::builder()
+            .level(Level::Warn)
+            .target("my_target")
+            .args(format_args!("warn msg"))
+            .file(Some("src/main.rs"))
+            .line(Some(42))
+            .build();
+        let entry = DetailedEntry::new(&record);
+        let json = serde_json::to_string(&entry).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let obj = value.as_object().unwrap();
+        assert!(obj.contains_key("ts"));
+        assert!(obj.contains_key("tgt"));
+        assert!(obj.contains_key("lev"));
+        assert!(obj.contains_key("msg"));
+        assert!(obj.contains_key("fn"));
+        assert!(obj.contains_key("ln"));
+        assert_eq!("my_target", obj["tgt"].as_str().unwrap());
+        assert_eq!("WARN", obj["lev"].as_str().unwrap());
+        assert_eq!("warn msg", obj["msg"].as_str().unwrap());
+        assert_eq!("src/main.rs", obj["fn"].as_str().unwrap());
+        assert_eq!(42, obj["ln"].as_u64().unwrap());
+    }
+
+    #[test]
+    fn detailed_entry_with_no_file_or_line() {
+        let record = Record::builder()
+            .level(Level::Debug)
+            .target("t")
+            .args(format_args!("m"))
+            .build();
+        let entry = DetailedEntry::new(&record);
+        let json = serde_json::to_string(&entry).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let obj = value.as_object().unwrap();
+        assert!(obj["fn"].is_null());
+        assert!(obj["ln"].is_null());
+    }
+
+    #[test]
+    fn brief_entry_timestamp_is_rfc3339() {
+        let record = Record::builder()
+            .level(Level::Error)
+            .target("t")
+            .args(format_args!("m"))
+            .build();
+        let entry = BriefEntry::new(&record);
+        let json = serde_json::to_string(&entry).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let ts = value["ts"].as_str().unwrap();
+        assert!(
+            chrono::DateTime::parse_from_rfc3339(ts).is_ok(),
+            "timestamp should be valid RFC3339: {ts}"
+        );
+    }
+}

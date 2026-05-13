@@ -79,3 +79,43 @@ pub fn run() -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::infer_git_dir;
+
+    #[test]
+    fn finds_git_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        let result = infer_git_dir(dir.path());
+        assert_eq!(Some(dir.path().to_path_buf()), result);
+    }
+
+    #[test]
+    fn finds_git_file_worktree() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(".git"), "gitdir: /some/path").unwrap();
+        let result = infer_git_dir(dir.path());
+        assert_eq!(Some(dir.path().to_path_buf()), result);
+    }
+
+    #[test]
+    fn returns_none_with_no_git() {
+        let dir = tempfile::tempdir().unwrap();
+        let child = dir.path().join("child");
+        std::fs::create_dir(&child).unwrap();
+        let result = infer_git_dir(&child);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn finds_git_in_parent_from_child() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        let child = dir.path().join("subdir");
+        std::fs::create_dir(&child).unwrap();
+        let result = infer_git_dir(&child);
+        assert_eq!(Some(dir.path().to_path_buf()), result);
+    }
+}

@@ -93,3 +93,36 @@ where
     }
     false
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{is_covered_by_dir, is_path_to_ignore};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(Some("file.txt"), "?? file.txt")]
+    #[case(Some("ignored/"), "!! ignored/")]
+    #[case(None, "M  modified.rs")]
+    #[case(None, "A  added.rs")]
+    #[case(None, "")]
+    #[case(None, "??")]
+    #[case(Some(""), "?? ")]
+    #[case(Some("path/to/file"), "?? path/to/file")]
+    #[case(Some("path/to/dir/"), "!! path/to/dir/")]
+    fn test_is_path_to_ignore(#[case] expected: Option<&str>, #[case] input: &str) {
+        assert_eq!(expected, is_path_to_ignore(input));
+    }
+
+    #[rstest]
+    #[case(true, &["target/"], "target/debug/foo")]
+    #[case(false, &["target/"], "target/")]
+    #[case(false, &["target/"], "tar/file")]
+    #[case(true, &["a/", "b/"], "a/file")]
+    #[case(false, &[], "anything")]
+    #[case(false, &["dir/"], "dir2/file")]
+    #[case(true, &["a/b/", "a/"], "a/b/c")]
+    fn test_is_covered_by_dir(#[case] expected: bool, #[case] dirs: &[&str], #[case] path: &str) {
+        let dir_vec: Vec<String> = dirs.iter().map(|s| String::from(*s)).collect();
+        assert_eq!(expected, is_covered_by_dir(&dir_vec, path));
+    }
+}

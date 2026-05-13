@@ -101,3 +101,33 @@ fn parse_absolute_path(s: &str) -> Result<PathBuf, String> {
         .map_err(|_| String::from("invalid path"))
         .map(|x| x.to_path_buf())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_absolute_path;
+
+    #[test]
+    fn absolute_path_stays_absolute() {
+        let result = parse_absolute_path("/usr/local/bin").unwrap();
+        assert!(result.is_absolute());
+        assert_eq!(result, std::path::PathBuf::from("/usr/local/bin"));
+    }
+
+    #[test]
+    fn relative_path_becomes_absolute() {
+        let result = parse_absolute_path("relative/path").unwrap();
+        assert!(result.is_absolute());
+    }
+
+    #[test]
+    fn path_with_dot_dot_resolves() {
+        let result = parse_absolute_path("/a/b/../c").unwrap();
+        assert_eq!(result, std::path::PathBuf::from("/a/c"));
+    }
+
+    #[test]
+    fn path_with_dot_resolves() {
+        let result = parse_absolute_path("/a/./b").unwrap();
+        assert_eq!(result, std::path::PathBuf::from("/a/b"));
+    }
+}

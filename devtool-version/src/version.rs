@@ -278,4 +278,57 @@ mod tests {
 
         Ok(())
     }
+
+    #[rstest]
+    #[case("")]
+    #[case("v")]
+    #[case("abc")]
+    #[case("1.2.3.4")]
+    #[case("1.2.abc")]
+    #[case("v.1.2")]
+    #[case("1..2")]
+    fn parse_errors(#[case] input: &str) {
+        assert!(input.parse::<Version>().is_err());
+    }
+
+    #[test]
+    fn clone_is_independent() {
+        let mut original = "1.2.3".parse::<Version>().unwrap();
+        let cloned = original.clone();
+        original.increment();
+        assert_eq!("1.2.4", original.to_string());
+        assert_eq!("1.2.3", cloned.to_string());
+    }
+
+    #[rstest]
+    #[case(3, "5", "2")]
+    #[case(3, "1.5", "1.2")]
+    #[case(3, "1.2.6", "1.2.3")]
+    fn multiple_increments(
+        #[case] times: usize,
+        #[case] expected: &str,
+        #[case] input: &str,
+    ) -> Result<()> {
+        let mut version = input.parse::<Version>()?;
+        for _ in 0..times {
+            version.increment();
+        }
+        assert_eq!(expected, version.to_string());
+        Ok(())
+    }
+
+    #[rstest]
+    #[case("1")]
+    #[case("v1")]
+    #[case("1.2")]
+    #[case("v1.2")]
+    #[case("1.2.3")]
+    #[case("v1.2.3")]
+    fn serde_round_trip(#[case] input: &str) -> Result<()> {
+        let version = input.parse::<Version>()?;
+        let json = serde_json::to_string(&version)?;
+        let deserialized: Version = serde_json::from_str(&json)?;
+        assert_eq!(version.to_string(), deserialized.to_string());
+        Ok(())
+    }
 }

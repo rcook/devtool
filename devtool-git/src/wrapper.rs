@@ -241,3 +241,153 @@ impl Git {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Git, GitError};
+    use std::path::PathBuf;
+
+    #[test]
+    fn new_stores_dir() {
+        let git = Git::new("/some/path");
+        assert_eq!(PathBuf::from("/some/path"), git.dir);
+    }
+
+    #[test]
+    fn error_display_command_failed_with_code() {
+        let err = GitError::CommandFailedWithCode(String::from("status"), 128);
+        assert_eq!("command status failed with exit code 128", err.to_string());
+    }
+
+    #[test]
+    fn error_display_command_failed() {
+        let err = GitError::CommandFailed(String::from("push"));
+        assert_eq!("command push failed", err.to_string());
+    }
+
+    #[test]
+    fn error_display_email_or_name_not_configured() {
+        let err = GitError::EmailOrNameNotConfigured;
+        assert_eq!("e-mail or name is not configured in Git", err.to_string());
+    }
+
+    #[test]
+    fn status_on_clean_repo() {
+        let dir = tempfile::tempdir().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir.path())
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        let status = git.status(false).unwrap();
+        assert!(status.is_empty());
+    }
+
+    #[test]
+    fn get_current_branch_on_new_repo() {
+        let dir = tempfile::tempdir().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir.path())
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        let branch = git.get_current_branch().unwrap();
+        assert_eq!("main", branch);
+    }
+
+    #[test]
+    fn describe_returns_none_with_no_tags() {
+        let dir = tempfile::tempdir().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir.path())
+            .output()
+            .unwrap();
+        std::fs::write(dir.path().join("file.txt"), "hello").unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["add", "."])
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args([
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@test.com",
+                "commit",
+                "-m",
+                "init",
+            ])
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        let description = git.describe().unwrap();
+        assert!(description.is_none());
+    }
+
+    #[test]
+    fn is_tracked_false_for_untracked_file() {
+        let dir = tempfile::tempdir().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir.path())
+            .output()
+            .unwrap();
+        std::fs::write(dir.path().join("untracked.txt"), "hello").unwrap();
+        let git = Git::new(dir.path());
+        assert!(!git.is_tracked(dir.path().join("untracked.txt")).unwrap());
+    }
+
+    #[test]
+    fn is_tracked_true_for_tracked_file() {
+        let dir = tempfile::tempdir().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir.path())
+            .output()
+            .unwrap();
+        let file_path = dir.path().join("tracked.txt");
+        std::fs::write(&file_path, "hello").unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["add", "tracked.txt"])
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args([
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@test.com",
+                "commit",
+                "-m",
+                "init",
+            ])
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        assert!(git.is_tracked(&file_path).unwrap());
+    }
+
+    #[test]
+    fn read_config_returns_none_for_unset_key() {
+        let dir = tempfile::tempdir().unwrap();
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir.path())
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        let value = git.read_config("user.nonexistent-key-12345").unwrap();
+        assert!(value.is_none());
+    }
+}

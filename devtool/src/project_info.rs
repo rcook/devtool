@@ -92,3 +92,90 @@ impl ProjectInfo {
         Ok(paths)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ProjectInfo;
+    use crate::app::App;
+
+    #[test]
+    fn infer_empty_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert!(info.cargo_toml_paths.is_empty());
+        assert!(info.pyproject_toml_paths.is_empty());
+    }
+
+    #[test]
+    fn infer_finds_cargo_toml_at_root() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        std::fs::write(dir.path().join("Cargo.toml"), "[package]").unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert_eq!(1, info.cargo_toml_paths.len());
+        assert!(info.cargo_toml_paths[0].ends_with("Cargo.toml"));
+    }
+
+    #[test]
+    fn infer_finds_nested_cargo_tomls_sorted() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        std::fs::create_dir(dir.path().join("b")).unwrap();
+        std::fs::create_dir(dir.path().join("a")).unwrap();
+        std::fs::write(dir.path().join("b/Cargo.toml"), "").unwrap();
+        std::fs::write(dir.path().join("a/Cargo.toml"), "").unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert_eq!(2, info.cargo_toml_paths.len());
+        assert!(info.cargo_toml_paths[0] < info.cargo_toml_paths[1]);
+    }
+
+    #[test]
+    fn infer_ignores_dot_git_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let git_dir = dir.path().join(".git");
+        std::fs::create_dir(&git_dir).unwrap();
+        std::fs::write(git_dir.join("Cargo.toml"), "").unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert!(info.cargo_toml_paths.is_empty());
+    }
+
+    #[test]
+    fn infer_ignores_target_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        let target_dir = dir.path().join("target");
+        std::fs::create_dir(&target_dir).unwrap();
+        std::fs::write(target_dir.join("Cargo.toml"), "").unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert!(info.cargo_toml_paths.is_empty());
+    }
+
+    #[test]
+    fn infer_finds_pyproject_toml() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        std::fs::write(dir.path().join("pyproject.toml"), "[project]").unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert!(info.cargo_toml_paths.is_empty());
+        assert_eq!(1, info.pyproject_toml_paths.len());
+    }
+
+    #[test]
+    fn infer_finds_both_manifest_types() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        std::fs::write(dir.path().join("Cargo.toml"), "").unwrap();
+        std::fs::write(dir.path().join("pyproject.toml"), "").unwrap();
+        let app = App::new(dir.path());
+        let info = ProjectInfo::infer(&app).unwrap();
+        assert_eq!(1, info.cargo_toml_paths.len());
+        assert_eq!(1, info.pyproject_toml_paths.len());
+    }
+}

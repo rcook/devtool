@@ -82,6 +82,22 @@ mod tests {
             count: 1
         })
     }), "v0.0.21-1-gdf3eff3")]
+    #[case(None, "v0.0.21-extra")]
+    #[case(None, "v0.0.21-1-g123-extra")]
+    #[case(None, "v1-abc-g123")]
+    #[case(Some(GitDescription {
+        description: String::from("0.0.21"),
+        tag: String::from("0.0.21"),
+        offset: None
+    }), "0.0.21")]
+    #[case(Some(GitDescription {
+        description: String::from("0.0.21-5-gabcdef"),
+        tag: String::from("0.0.21"),
+        offset: Some(Offset {
+            commit: String::from("gabcdef"),
+            count: 5
+        })
+    }), "0.0.21-5-gabcdef")]
     fn test_basics(#[case] expected_result: Option<GitDescription>, #[case] input: &str) {
         assert_eq!(expected_result, GitDescription::parse(input));
     }
