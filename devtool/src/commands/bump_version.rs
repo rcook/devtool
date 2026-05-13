@@ -22,8 +22,10 @@
 use crate::app::App;
 use crate::project_info::ProjectInfo;
 use anyhow::{Result, bail};
+use devtool_git::Git;
 use devtool_version::Version;
 use joatmon::{read_toml_file_edit, safe_write_file};
+use log::info;
 use path_absolutize::Absolutize;
 use std::io::Result as IOResult;
 use std::path::Path;
@@ -34,7 +36,52 @@ use toml_edit::value;
 static INITIAL_VERSION: LazyLock<Version> =
     LazyLock::new(|| "v0.0.0".parse::<Version>().expect("init: must succeed"));
 
+struct RollbackGuard<'a> {
+    git: &'a Git,
+    original_head: String,
+    tag: Option<String>,
+    disarmed: bool,
+}
+
+impl<'a> RollbackGuard<'a> {
+    const fn new(git: &'a Git, original_head: String) -> Self {
+        Self {
+            git,
+            original_head,
+            tag: None,
+            disarmed: false,
+        }
+    }
+
+    fn set_tag(&mut self, tag: String) {
+        self.tag = Some(tag);
+    }
+
+    const fn disarm(&mut self) {
+        self.disarmed = true;
+    }
+}
+
+impl Drop for RollbackGuard<'_> {
+    fn drop(&mut self) {
+        if self.disarmed {
+            return;
+        }
+        eprintln!("Rolling back version bump...");
+        if self.git.reset_hard(&self.original_head).is_err() {
+            eprintln!("Warning: failed to reset to {}", self.original_head);
+        }
+        if let Some(tag) = &self.tag
+            && self.git.delete_tag(tag).is_err()
+        {
+            eprintln!("Warning: failed to delete tag {tag}");
+        }
+    }
+}
+
 pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Result<()> {
+    // Phase 1: Validation — no mutations, no rollback needed
+
     if app.git.read_config("user.name")?.is_none() {
         bail!("Git user name is not set")
     }
@@ -54,13 +101,19 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
         )
     }
 
-    if app.git.get_upstream(&branch)?.is_none() {
-        bail!(
+    let upstream = app.git.get_upstream(&branch)?.ok_or_else(|| {
+        anyhow::anyhow!(
             "Branch {} has no upstream set: set with git push -u origin {} or similar",
             branch,
             branch
-        );
-    }
+        )
+    })?;
+
+    info!("Fetching from remote...");
+    app.git.fetch()?;
+
+    info!("Rebasing on {upstream}...");
+    app.git.rebase(&upstream)?;
 
     let project_info = app.read_config()?.map_or_else(
         || ProjectInfo::infer(app),
@@ -88,46 +141,48 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
         get_new_version(app, &INITIAL_VERSION)?
     };
 
-    println!("project_info={project_info:#?}");
-    println!("new_version={new_version}");
-    println!("cargo_toml_paths={:#?}", project_info.cargo_toml_paths);
-    println!(
-        "pyproject_toml_paths={:#?}",
-        project_info.pyproject_toml_paths
-    );
+    let tag = new_version.to_string();
+    if app.git.rev_parse(&format!("refs/tags/{tag}"))?.is_some() {
+        bail!("Tag \"{tag}\" already exists")
+    }
+
+    // Phase 2: Mutation — under RollbackGuard
+
+    let original_head = app.git.head_sha()?;
+    let mut guard = RollbackGuard::new(&app.git, original_head);
 
     let mut new_version_without_prefix = new_version.dupe();
     new_version_without_prefix.set_prefix(false);
 
     let mut file_change = false;
 
-    if !project_info.cargo_toml_paths.is_empty() {
-        file_change = true;
-
-        for path in project_info.cargo_toml_paths {
-            update_cargo_toml(app, &path, &new_version_without_prefix)?;
-        }
-
-        regenerate_cargo_lock(app)?;
-    }
-
-    if !project_info.pyproject_toml_paths.is_empty() {
-        file_change = true;
-
-        for path in project_info.pyproject_toml_paths {
-            update_pyproject_toml(app, &path, &new_version_without_prefix)?;
+    for path in &project_info.cargo_toml_paths {
+        if update_cargo_toml(app, path, &new_version_without_prefix)? {
+            file_change = true;
         }
     }
 
     if file_change {
-        app.git
-            .commit(format!("Bump version to {new_version_without_prefix}"))?;
-        println!("Bumped Cargo and Python package version to {new_version_without_prefix}");
+        regenerate_cargo_lock(app)?;
     }
 
-    let tag = new_version.to_string();
+    for path in &project_info.pyproject_toml_paths {
+        if update_pyproject_toml(app, path, &new_version_without_prefix)? {
+            file_change = true;
+        }
+    }
+
+    if file_change && app.git.has_staged_changes()? {
+        app.git
+            .commit(format!("Bump version to {new_version_without_prefix}"))?;
+        println!("Bumped version to {new_version_without_prefix}");
+    }
+
     app.git.create_annotated_tag(&tag)?;
+    guard.set_tag(tag.clone());
     println!("Created tag {tag}");
+
+    // Phase 3: Finalize
 
     if push_all {
         app.git.push_all()?;
@@ -136,6 +191,7 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
         println!("Skipping push of commits and tags");
     }
 
+    guard.disarm();
     Ok(())
 }
 
@@ -147,7 +203,6 @@ fn get_new_version(app: &App, default: &Version) -> Result<Version> {
             }
 
             let mut version = description.tag.parse::<Version>()?;
-            println!("description={description:#?}");
             version.increment();
             version
         }
@@ -155,7 +210,7 @@ fn get_new_version(app: &App, default: &Version) -> Result<Version> {
     })
 }
 
-fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Version) -> Result<()> {
+fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Version) -> Result<bool> {
     let mut doc = read_toml_file_edit(path)?;
 
     if let Some(package) = doc
@@ -167,7 +222,7 @@ fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Versio
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;
-        return Ok(());
+        return Ok(true);
     }
 
     if let Some(workspace) = doc
@@ -182,10 +237,10 @@ fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Versio
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;
-        return Ok(());
+        return Ok(true);
     }
 
-    Ok(())
+    Ok(false)
 }
 
 fn regenerate_cargo_lock(app: &App) -> Result<()> {
@@ -193,13 +248,13 @@ fn regenerate_cargo_lock(app: &App) -> Result<()> {
     let cargo_lock_path = app.git.dir.join("Cargo.lock");
     if app.git.is_tracked(&cargo_toml_path)? && app.git.is_tracked(&cargo_lock_path)? {
         if !Command::new("cargo")
-            .arg("build")
+            .arg("generate-lockfile")
             .arg("--manifest-path")
             .arg(&cargo_toml_path)
             .status()?
             .success()
         {
-            bail!("cargo build failed")
+            bail!("cargo generate-lockfile failed")
         }
 
         app.git.add(&cargo_lock_path)?;
@@ -212,7 +267,7 @@ fn update_pyproject_toml(
     app: &App,
     path: &Path,
     new_version_without_prefix: &Version,
-) -> Result<()> {
+) -> Result<bool> {
     let mut doc = read_toml_file_edit(path)?;
 
     if let Some(package) = doc
@@ -224,7 +279,8 @@ fn update_pyproject_toml(
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;
+        return Ok(true);
     }
 
-    Ok(())
+    Ok(false)
 }

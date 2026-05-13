@@ -218,6 +218,67 @@ impl Git {
         Ok(!result.stdout.is_empty())
     }
 
+    pub fn fetch(&self) -> GitResult<()> {
+        self.run("fetch", |_| {})?.ok()?;
+        Ok(())
+    }
+
+    pub fn rebase(&self, upstream: &str) -> GitResult<()> {
+        self.run("rebase", |c| {
+            c.arg(upstream);
+        })?
+        .ok()?;
+        Ok(())
+    }
+
+    pub fn rev_parse(&self, rev: &str) -> GitResult<Option<String>> {
+        let result = self.run("rev-parse", |c| {
+            c.arg("--verify");
+            c.arg(rev);
+        })?;
+
+        if !result.succeeded {
+            return Ok(None);
+        }
+
+        Ok(Some(result.stdout))
+    }
+
+    pub fn head_sha(&self) -> GitResult<String> {
+        let result = self
+            .run("rev-parse", |c| {
+                c.arg("HEAD");
+            })?
+            .ok()?;
+        Ok(result.stdout)
+    }
+
+    pub fn reset_hard(&self, target: &str) -> GitResult<()> {
+        self.run("reset", |c| {
+            c.arg("--hard");
+            c.arg(target);
+        })?
+        .ok()?;
+        Ok(())
+    }
+
+    pub fn delete_tag(&self, tag: &str) -> GitResult<()> {
+        self.run("tag", |c| {
+            c.arg("-d");
+            c.arg(tag);
+        })?
+        .ok()?;
+        Ok(())
+    }
+
+    pub fn has_staged_changes(&self) -> GitResult<bool> {
+        let result = self.run("diff", |c| {
+            c.arg("--cached");
+            c.arg("--quiet");
+        })?;
+        Ok(!result.succeeded)
+    }
+
     fn run<F>(&self, command: &str, build: F) -> GitResult<CommandResult>
     where
         F: FnOnce(&mut Command),
@@ -389,5 +450,146 @@ mod tests {
         let git = Git::new(dir.path());
         let value = git.read_config("user.nonexistent-key-12345").unwrap();
         assert!(value.is_none());
+    }
+
+    fn init_repo_with_commit(dir: &std::path::Path) {
+        std::process::Command::new("git")
+            .args(["init", "--initial-branch", "main"])
+            .arg(dir)
+            .output()
+            .unwrap();
+        std::fs::write(dir.join("file.txt"), "hello").unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir)
+            .args(["add", "."])
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir)
+            .args([
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@test.com",
+                "commit",
+                "-m",
+                "init",
+            ])
+            .output()
+            .unwrap();
+    }
+
+    #[test]
+    fn rev_parse_returns_none_for_nonexistent_ref() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        let git = Git::new(dir.path());
+        assert!(git.rev_parse("refs/tags/v99.99.99").unwrap().is_none());
+    }
+
+    #[test]
+    fn rev_parse_returns_some_for_existing_ref() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["tag", "v1.0.0"])
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        assert!(git.rev_parse("refs/tags/v1.0.0").unwrap().is_some());
+    }
+
+    #[test]
+    fn head_sha_returns_valid_sha() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        let git = Git::new(dir.path());
+        let sha = git.head_sha().unwrap();
+        assert_eq!(40, sha.len());
+        assert!(sha.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn reset_hard_moves_head() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        let git = Git::new(dir.path());
+        let first_sha = git.head_sha().unwrap();
+
+        std::fs::write(dir.path().join("second.txt"), "world").unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["add", "."])
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args([
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@test.com",
+                "commit",
+                "-m",
+                "second",
+            ])
+            .output()
+            .unwrap();
+        assert_ne!(first_sha, git.head_sha().unwrap());
+
+        git.reset_hard(&first_sha).unwrap();
+        assert_eq!(first_sha, git.head_sha().unwrap());
+    }
+
+    #[test]
+    fn delete_tag_removes_tag() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["config", "user.name", "Test"])
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["config", "user.email", "test@test.com"])
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        git.create_annotated_tag("v1.0.0").unwrap();
+        assert!(git.rev_parse("refs/tags/v1.0.0").unwrap().is_some());
+        git.delete_tag("v1.0.0").unwrap();
+        assert!(git.rev_parse("refs/tags/v1.0.0").unwrap().is_none());
+    }
+
+    #[test]
+    fn has_staged_changes_false_when_clean() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        let git = Git::new(dir.path());
+        assert!(!git.has_staged_changes().unwrap());
+    }
+
+    #[test]
+    fn has_staged_changes_true_when_staged() {
+        let dir = tempfile::tempdir().unwrap();
+        init_repo_with_commit(dir.path());
+        std::fs::write(dir.path().join("new.txt"), "new").unwrap();
+        std::process::Command::new("git")
+            .args(["-C"])
+            .arg(dir.path())
+            .args(["add", "new.txt"])
+            .output()
+            .unwrap();
+        let git = Git::new(dir.path());
+        assert!(git.has_staged_changes().unwrap());
     }
 }
