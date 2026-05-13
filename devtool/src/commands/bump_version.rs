@@ -103,9 +103,7 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
 
     let upstream = app.git.get_upstream(&branch)?.ok_or_else(|| {
         anyhow::anyhow!(
-            "Branch {} has no upstream set: set with git push -u origin {} or similar",
-            branch,
-            branch
+            "Branch {branch} has no upstream set: set with git push -u origin {branch} or similar"
         )
     })?;
 

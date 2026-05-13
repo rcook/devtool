@@ -120,8 +120,7 @@ fn parse_version_inner(s: &str) -> VersionParseResult<Box<dyn VersionInner>> {
             build: parts[2].parse::<i32>().map_err(|e| anyhow!(e))?,
         })),
         _ => Err(VersionParseError::Other(anyhow!(
-            "could not parse {} as version",
-            s
+            "could not parse {s} as version"
         ))),
     }
 }
