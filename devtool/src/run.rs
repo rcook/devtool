@@ -22,20 +22,20 @@
 use crate::app::App;
 use crate::args::{Args, Command};
 use crate::commands::{bump_version, generate_config, generate_ignore, show_description};
+use crate::fs_util::{find_sentinel_dir, find_sentinel_file};
 use crate::logging::init_logging;
 use anyhow::{Result, anyhow};
 use clap::Parser;
-use joatmon::{find_sentinel_dir, find_sentinel_file};
 use std::env::current_dir;
 use std::path::{Path, PathBuf};
 
 fn infer_git_dir(cwd: &Path) -> Option<PathBuf> {
     let git_path = Path::new(".git");
-    let git_dir0 = find_sentinel_dir(git_path, cwd, None).map(|mut dir| {
+    let git_dir0 = find_sentinel_dir(git_path, cwd).map(|mut dir| {
         dir.pop();
         dir
     });
-    let git_dir1 = find_sentinel_file(git_path, cwd, None).map(|mut p| {
+    let git_dir1 = find_sentinel_file(git_path, cwd).map(|mut p| {
         p.pop();
         p
     });

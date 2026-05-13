@@ -19,10 +19,11 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+use crate::fs_util::safe_write_file;
 use crate::{constants::CONFIG_FILE_NAME, serialization::Config};
 use anyhow::Result;
 use devtool_git::Git;
-use joatmon::{HasOtherError, read_yaml_file, safe_write_file};
+use std::fs::read_to_string;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -46,17 +47,10 @@ impl App {
 
     pub fn read_config(&self) -> Result<Option<Config>> {
         let config_path = self.config_path();
-        match read_yaml_file(&config_path) {
-            Ok(config) => Ok(Some(config)),
-            Err(e) => {
-                if e.downcast_other_ref::<joatmon::FileReadError>()
-                    .is_some_and(joatmon::FileReadError::is_not_found)
-                {
-                    Ok(None)
-                } else {
-                    Err(e.into())
-                }
-            }
+        match read_to_string(&config_path) {
+            Ok(s) => Ok(Some(serde_yaml::from_str(&s)?)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e.into()),
         }
     }
 

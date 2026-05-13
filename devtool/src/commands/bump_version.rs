@@ -20,11 +20,11 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 use crate::app::App;
+use crate::fs_util::safe_write_file;
 use crate::project_info::ProjectInfo;
 use anyhow::{Result, bail};
 use devtool_git::Git;
 use devtool_version::Version;
-use joatmon::safe_write_file;
 use log::info;
 use path_absolutize::Absolutize;
 use std::fs::read_to_string;

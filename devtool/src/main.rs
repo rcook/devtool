@@ -36,6 +36,7 @@ mod app;
 mod args;
 mod commands;
 mod constants;
+mod fs_util;
 mod logging;
 mod project_info;
 mod run;
