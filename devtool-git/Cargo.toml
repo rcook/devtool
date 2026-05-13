@@ -16,7 +16,7 @@ log = "0.4.25"
 thiserror = "2.0.11"
 
 [dev-dependencies]
-rstest = "0.24.0"
+rstest = "0.26"
 tempfile = "3"
 
 [lints.clippy]
