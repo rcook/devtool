@@ -45,6 +45,8 @@ pub enum GitError {
 
 pub type GitResult<T> = StdResult<T, GitError>;
 
+const GIT_FATAL_EXIT_CODE: i32 = 128;
+
 #[derive(Debug)]
 pub struct Git {
     pub dir: PathBuf,
@@ -103,7 +105,9 @@ impl Git {
     pub fn describe(&self) -> GitResult<Option<GitDescription>> {
         let result = self.run("describe", |_| {})?;
 
-        if result.exit_code == Some(128) && result.stderr.contains("cannot describe anything") {
+        if result.exit_code == Some(GIT_FATAL_EXIT_CODE)
+            && result.stderr.contains("cannot describe anything")
+        {
             return Ok(None);
         }
 
@@ -125,7 +129,7 @@ impl Git {
             c.arg(format!("{branch}@{{upstream}}"));
         })?;
 
-        if result.exit_code == Some(128) && result.stderr.contains("no upstream") {
+        if result.exit_code == Some(GIT_FATAL_EXIT_CODE) && result.stderr.contains("no upstream") {
             return Ok(None);
         }
 
@@ -183,7 +187,9 @@ impl Git {
             c.arg(message.as_ref());
         })?;
 
-        if result.exit_code == Some(128) && result.stderr.contains("tell me who you are") {
+        if result.exit_code == Some(GIT_FATAL_EXIT_CODE)
+            && result.stderr.contains("tell me who you are")
+        {
             return Err(GitError::EmailOrNameNotConfigured);
         }
 

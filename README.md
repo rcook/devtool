@@ -42,7 +42,6 @@ devtool <command> [options]
 | `gen-config` | Generate a `.devtool.yaml` configuration file |
 | `gen-ignore` | Generate `.gitignore` entries from untracked and ignored files |
 | `show-description` | Show git description and parsed version information |
-| `scratch` | Experimental |
 
 ### Global options
 

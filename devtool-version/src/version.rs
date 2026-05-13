@@ -47,13 +47,6 @@ impl Version {
     pub fn increment(&mut self) {
         self.inner.increment();
     }
-
-    #[must_use]
-    pub fn dupe(&self) -> Self {
-        Self {
-            inner: self.inner.dupe(),
-        }
-    }
 }
 
 impl Clone for Version {
@@ -269,7 +262,7 @@ mod tests {
         version.set_prefix(true);
         assert_eq!(expected_prefix, version.to_string());
 
-        let other_version = version.dupe();
+        let other_version = version.clone();
         assert_eq!(version.to_string(), other_version.to_string());
 
         let mut version = input.parse::<Version>()?;

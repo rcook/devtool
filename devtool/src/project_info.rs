@@ -68,7 +68,7 @@ impl ProjectInfo {
                 let entry = result?;
                 let path = entry.path();
 
-                if path.is_dir()
+                if entry.file_type()?.is_dir()
                     && path
                         .file_name()
                         .is_none_or(|x| !ignore_dirs_set.contains(x))

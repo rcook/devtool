@@ -135,7 +135,7 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
         },
     )?;
 
-    let new_version = if let Some(version) = version {
+    let mut new_version = if let Some(version) = version {
         version.clone()
     } else {
         get_new_version(app, &INITIAL_VERSION)?
@@ -151,13 +151,12 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
     let original_head = app.git.head_sha()?;
     let mut guard = RollbackGuard::new(&app.git, original_head);
 
-    let mut new_version_without_prefix = new_version.dupe();
-    new_version_without_prefix.set_prefix(false);
+    new_version.set_prefix(false);
 
     let mut file_change = false;
 
     for path in &project_info.cargo_toml_paths {
-        if update_cargo_toml(app, path, &new_version_without_prefix)? {
+        if update_cargo_toml(app, path, &new_version)? {
             file_change = true;
         }
     }
@@ -167,15 +166,14 @@ pub fn bump_version(app: &App, version: Option<&Version>, push_all: bool) -> Res
     }
 
     for path in &project_info.pyproject_toml_paths {
-        if update_pyproject_toml(app, path, &new_version_without_prefix)? {
+        if update_pyproject_toml(app, path, &new_version)? {
             file_change = true;
         }
     }
 
     if file_change && app.git.has_staged_changes()? {
-        app.git
-            .commit(format!("Bump version to {new_version_without_prefix}"))?;
-        println!("Bumped version to {new_version_without_prefix}");
+        app.git.commit(format!("Bump version to {new_version}"))?;
+        println!("Bumped version to {new_version}");
     }
 
     app.git.create_annotated_tag(&tag)?;
@@ -210,7 +208,7 @@ fn get_new_version(app: &App, default: &Version) -> Result<Version> {
     })
 }
 
-fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Version) -> Result<bool> {
+fn update_cargo_toml(app: &App, path: &Path, new_version: &Version) -> Result<bool> {
     let mut doc = read_toml_file_edit(path)?;
 
     if let Some(package) = doc
@@ -218,7 +216,7 @@ fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Versio
         .get_mut("package")
         .and_then(toml_edit::Item::as_table_mut)
     {
-        _ = package.insert("version", value(format!("{new_version_without_prefix}")));
+        _ = package.insert("version", value(format!("{new_version}")));
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;
@@ -233,7 +231,7 @@ fn update_cargo_toml(app: &App, path: &Path, new_version_without_prefix: &Versio
             .get_mut("package")
             .and_then(toml_edit::Item::as_table_mut)
     {
-        _ = package.insert("version", value(format!("{new_version_without_prefix}")));
+        _ = package.insert("version", value(format!("{new_version}")));
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;
@@ -263,11 +261,7 @@ fn regenerate_cargo_lock(app: &App) -> Result<()> {
     Ok(())
 }
 
-fn update_pyproject_toml(
-    app: &App,
-    path: &Path,
-    new_version_without_prefix: &Version,
-) -> Result<bool> {
+fn update_pyproject_toml(app: &App, path: &Path, new_version: &Version) -> Result<bool> {
     let mut doc = read_toml_file_edit(path)?;
 
     if let Some(package) = doc
@@ -275,7 +269,7 @@ fn update_pyproject_toml(
         .get_mut("project")
         .and_then(toml_edit::Item::as_table_mut)
     {
-        _ = package.insert("version", value(format!("{new_version_without_prefix}")));
+        _ = package.insert("version", value(format!("{new_version}")));
         let result = doc.to_string();
         safe_write_file(path, result, true)?;
         app.git.add(path)?;

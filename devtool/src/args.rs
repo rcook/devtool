@@ -85,9 +85,6 @@ pub enum Command {
     #[command(name = "gen-ignore", about = "Generate .gitignore file")]
     GenerateIgnore,
 
-    #[command(name = "scratch", about = "(Experimental)")]
-    Scratch,
-
     #[command(
         name = "show-description",
         about = "Show Git description and commit information"

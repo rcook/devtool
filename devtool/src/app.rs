@@ -22,7 +22,7 @@
 use crate::{constants::CONFIG_FILE_NAME, serialization::Config};
 use anyhow::Result;
 use devtool_git::Git;
-use joatmon::{read_yaml_file, safe_write_file};
+use joatmon::{HasOtherError, read_yaml_file, safe_write_file};
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -45,12 +45,18 @@ impl App {
     }
 
     pub fn read_config(&self) -> Result<Option<Config>> {
-        // TBD: Complete with time-of-check time-of-use race condition!
         let config_path = self.config_path();
-        if config_path.is_file() {
-            Ok(Some(read_yaml_file(&config_path)?))
-        } else {
-            Ok(None)
+        match read_yaml_file(&config_path) {
+            Ok(config) => Ok(Some(config)),
+            Err(e) => {
+                if e.downcast_other_ref::<joatmon::FileReadError>()
+                    .is_some_and(joatmon::FileReadError::is_not_found)
+                {
+                    Ok(None)
+                } else {
+                    Err(e.into())
+                }
+            }
         }
     }
 

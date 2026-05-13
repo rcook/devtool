@@ -42,14 +42,13 @@ mod run;
 mod serialization;
 
 use crate::run::run;
-use colored::Colorize;
 use std::process::exit;
 
 fn main() {
     exit(match run() {
         Ok(()) => 0,
         Err(e) => {
-            println!("{}", format!("{e}").bright_red());
+            eprintln!("{e}");
             1
         }
     })

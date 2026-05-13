@@ -42,23 +42,27 @@ impl GitDescription {
             return None;
         }
 
-        let parts = s.split('-').collect::<Vec<_>>();
-        match parts.len() {
-            1 => Some(Self {
+        if let Some((before_commit, commit)) = s.rsplit_once('-')
+            && commit.starts_with('g')
+            && let Some((tag, count_str)) = before_commit.rsplit_once('-')
+            && let Ok(count) = count_str.parse::<i32>()
+            && !tag.is_empty()
+        {
+            return Some(Self {
                 description: String::from(s),
-                tag: String::from(parts[0]),
-                offset: None,
-            }),
-            3 => Some(Self {
-                description: String::from(s),
-                tag: String::from(parts[0]),
+                tag: String::from(tag),
                 offset: Some(Offset {
-                    commit: String::from(parts[2]),
-                    count: parts[1].parse::<i32>().ok()?,
+                    commit: String::from(commit),
+                    count,
                 }),
-            }),
-            _ => None,
+            });
         }
+
+        Some(Self {
+            description: String::from(s),
+            tag: String::from(s),
+            offset: None,
+        })
     }
 }
 
@@ -82,9 +86,6 @@ mod tests {
             count: 1
         })
     }), "v0.0.21-1-gdf3eff3")]
-    #[case(None, "v0.0.21-extra")]
-    #[case(None, "v0.0.21-1-g123-extra")]
-    #[case(None, "v1-abc-g123")]
     #[case(Some(GitDescription {
         description: String::from("0.0.21"),
         tag: String::from("0.0.21"),
@@ -98,6 +99,32 @@ mod tests {
             count: 5
         })
     }), "0.0.21-5-gabcdef")]
+    #[case(Some(GitDescription {
+        description: String::from("v1.0-beta"),
+        tag: String::from("v1.0-beta"),
+        offset: None
+    }), "v1.0-beta")]
+    #[case(Some(GitDescription {
+        description: String::from("v1.0-beta-3-gabcdef"),
+        tag: String::from("v1.0-beta"),
+        offset: Some(Offset {
+            commit: String::from("gabcdef"),
+            count: 3
+        })
+    }), "v1.0-beta-3-gabcdef")]
+    #[case(Some(GitDescription {
+        description: String::from("release-2.0-rc1"),
+        tag: String::from("release-2.0-rc1"),
+        offset: None
+    }), "release-2.0-rc1")]
+    #[case(Some(GitDescription {
+        description: String::from("release-2.0-rc1-7-g1234abc"),
+        tag: String::from("release-2.0-rc1"),
+        offset: Some(Offset {
+            commit: String::from("g1234abc"),
+            count: 7
+        })
+    }), "release-2.0-rc1-7-g1234abc")]
     fn test_basics(#[case] expected_result: Option<GitDescription>, #[case] input: &str) {
         assert_eq!(expected_result, GitDescription::parse(input));
     }

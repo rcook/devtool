@@ -21,7 +21,7 @@
 //
 use crate::app::App;
 use crate::args::{Args, Command};
-use crate::commands::{bump_version, generate_config, generate_ignore, scratch, show_description};
+use crate::commands::{bump_version, generate_config, generate_ignore, show_description};
 use crate::logging::init_logging;
 use anyhow::{Result, anyhow};
 use clap::Parser;
@@ -74,7 +74,6 @@ pub fn run() -> Result<()> {
         } => bump_version(&app, version.as_ref(), push_all)?,
         Command::GenerateConfig => generate_config(&app)?,
         Command::GenerateIgnore => generate_ignore(&app)?,
-        Command::Scratch => scratch(&app),
         Command::ShowDescription => show_description(&app)?,
     }
     Ok(())

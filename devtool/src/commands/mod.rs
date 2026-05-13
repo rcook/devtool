@@ -22,11 +22,9 @@
 mod bump_version;
 mod generate_config;
 mod generate_ignore;
-mod scratch;
 mod show_description;
 
 pub use self::bump_version::bump_version;
 pub use self::generate_config::generate_config;
 pub use self::generate_ignore::generate_ignore;
-pub use self::scratch::scratch;
 pub use self::show_description::show_description;
